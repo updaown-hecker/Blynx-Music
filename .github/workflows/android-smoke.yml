@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -44,8 +45,14 @@ jobs:
           set -euo pipefail
           sdkmanager 'system-images;android-35;default;x86_64'
           sudo chown "$USER" /dev/kvm
+          export ANDROID_USER_HOME="$RUNNER_TEMP/android-user"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
           printf 'no\n' | avdmanager create avd --force --name blynx-smoke \
-            --package 'system-images;android-35;default;x86_64' --device pixel_7
+            --package 'system-images;android-35;default;x86_64' --device pixel_7 \
+            --path "$ANDROID_AVD_HOME/blynx-smoke.avd"
+          "$ANDROID_HOME/emulator/emulator" -list-avds | tee qa/avds.txt
+          grep -Fx blynx-smoke qa/avds.txt
           adb start-server
           "$ANDROID_HOME/emulator/emulator" -avd blynx-smoke -no-window \
             -no-snapshot -no-audio -no-boot-anim -gpu swiftshader -cores 2 \
@@ -53,7 +60,8 @@ jobs:
           emulator_pid=$!
           trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT
           adb_ready=0
-          for attempt in {1..60}; do
+          for attempt in {1..75}; do
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then cat qa/emulator.log; exit 1; fi
             if [[ "$(timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == 1 ]]; then
               adb_ready=1
               break
@@ -77,6 +85,7 @@ jobs:
           adb shell dumpsys activity activities > qa/activities.txt
           grep -E '(topResumedActivity|mResumedActivity).*vip.blynx.music' qa/activities.txt
           adb exec-out screencap -p >qa/launch.png
+          timeout 230 python3 scripts/android-smoke-playback.py
           adb logcat -d -b crash >qa/crash.txt
           if grep -Fq 'Process: vip.blynx.music' qa/crash.txt; then
             cat qa/crash.txt
@@ -90,3 +99,4 @@ jobs:
             qa/*.txt
             qa/*.log
             qa/*.png
+            qa/*.xml

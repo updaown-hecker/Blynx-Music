@@ -13,8 +13,8 @@ import com.opentune.data.settings.AppSettings
 import com.opentune.data.subsonic.Subsonic
 import java.io.File
 
-/** Where the desktop keeps what it saves: ~/.opentune, read through the shared code's Context. */
-internal val appContext by lazy { android.content.Context(File(System.getProperty("user.home"), ".opentune")) }
+/** Where the desktop keeps what it saves: ~/.blynx-music, read through the shared code's Context. */
+internal val appContext by lazy { android.content.Context(File(System.getProperty("user.home"), ".blynx-music")) }
 
 fun main(args: Array<String>) {
     if ("--self-check" in args) return selfCheck()
@@ -36,7 +36,7 @@ fun main(args: Array<String>) {
     application {
         Window(
             onCloseRequest = ::exitApplication,
-            title = "OpenTune",
+            title = "Blynx Music",
             icon = rememberLogo(Logo.APP),
             state = rememberWindowState(size = DpSize(1180.dp, 760.dp)),
             // On Windows the app draws its own title bar (see WindowsFrame), and on Windows 11 the
@@ -61,7 +61,7 @@ fun main(args: Array<String>) {
 }
 
 /**
- * `OpenTune --self-check`: loads what the installer must carry (FFmpeg,
+ * `BlynxMusic --self-check`: loads what the installer must carry (FFmpeg,
  * GraalJS, SQLite), prints what it found and exits, failing if any is
  * missing. For checking a packaged build, where the trimmed Java runtime
  * could be short of a module the tests' full one has.

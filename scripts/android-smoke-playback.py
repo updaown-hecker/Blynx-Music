@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Exercise the released phone APK with a local fixture and no network."""
+"""Exercise the released Android APK with a local fixture and no network."""
 import array
 import math
+import os
 import re
 import subprocess
 import time
@@ -23,7 +24,7 @@ def screenshot(name: str) -> None:
     (QA / f"{name}.png").write_bytes(image)
 
 
-def tap(label: str, *, attempts: int = 8, required: bool = True) -> None:
+def tap(label: str, *, attempts: int = 8, required: bool = True, press: bool = True) -> None:
     for _ in range(attempts):
         try:
             adb("shell", "uiautomator", "dump", "--compressed", "/data/local/tmp/blynx.xml", timeout=18)
@@ -34,8 +35,9 @@ def tap(label: str, *, attempts: int = 8, required: bool = True) -> None:
                 if label not in names or node.get("enabled") == "false":
                     continue
                 left, top, right, bottom = map(int, re.findall(r"\d+", node.attrib["bounds"]))
-                adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
-                print(f"Tapped {label}", flush=True)
+                if press:
+                    adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
+                print(f"{'Tapped' if press else 'Found'} {label}", flush=True)
                 return
         except (subprocess.SubprocessError, ET.ParseError):
             pass
@@ -96,6 +98,18 @@ def main() -> None:
     tap(TRACK)
     media_state(3)
     screenshot("library-playback")
+    if os.environ.get("BLYNX_PROFILE") == "tablet":
+        adb("shell", "cmd", "window", "user-rotation", "lock", "1")
+        tap("Hide player", press=False)
+        screenshot("tablet-landscape")
+        tap("Hide player")
+        tap("Show player")
+        tap("Hide player", press=False)
+        adb("shell", "cmd", "window", "user-rotation", "lock", "0")
+        tap("On this device", press=False)
+        screenshot("tablet-portrait")
+        media_state(3)
+        print("Verified tablet rotation and landscape player collapse and expansion", flush=True)
     adb("shell", "input", "keyevent", "KEYCODE_HOME")
     media_state(3)
     adb("shell", "cmd", "media_session", "dispatch", "pause")

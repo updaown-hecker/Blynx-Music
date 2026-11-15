@@ -1,0 +1,91 @@
+name: Blynx Music Linux release
+
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/linux-release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blynx-linux-release
+  cancel-in-progress: false
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-37.0 build-tools;35.0.0 ndk;27.2.12479018 cmake;3.22.1
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install packaging and test tools
+        run: sudo apt-get update && sudo apt-get install -y rpm xvfb xdotool libasound2
+      - name: Test and build Linux installers
+        run: xvfb-run -a ./gradlew :desktop:test :desktop:createDistributable :desktop:packageDeb :desktop:packageRpm
+      - name: Prepare release files
+        id: files
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^[[:space:]]*versionName = "\([0-9.]*\)".*/\1/p' app/build.gradle.kts)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "tag=v$version-linux" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          binary=desktop/build/compose/binaries/main
+          mkdir -p release
+          cp "$binary"/deb/*.deb "release/Blynx-Music-v$version-linux-amd64.deb"
+          cp "$binary"/rpm/*.rpm "release/Blynx-Music-v$version-linux-x86_64.rpm"
+          cp LICENSE THIRD_PARTY_NOTICES.md "$binary/app/BlynxMusic/"
+          tar -C "$binary/app" -czf "release/Blynx-Music-v$version-linux-x86_64-portable.tar.gz" BlynxMusic
+          (cd release && sha256sum Blynx-Music-* > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
+      - name: Verify an installed Debian package and the portable runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          package=$(realpath release/*.deb)
+          deb_name=$(dpkg-deb -f "$package" Package)
+          dpkg-deb -I "$package"
+          rpm -qip release/*.rpm
+          sudo apt-get install -y "$package"
+          launcher=$(dpkg -L "$deb_name" | awk '/\/bin\/BlynxMusic$/ { print }')
+          test -x "$launcher"
+          export _JAVA_OPTIONS="-Duser.home=$RUNNER_TEMP/blynx-test-home"
+          mkdir -p "$RUNNER_TEMP/blynx-test-home"
+          "$launcher" --self-check
+          desktop/build/compose/binaries/main/app/BlynxMusic/bin/BlynxMusic --self-check
+          export BLYNX_LAUNCHER="$launcher"
+          xvfb-run -a bash -euo pipefail -c '
+            "$BLYNX_LAUNCHER" >desktop-launch.log 2>&1 &
+            pid=$!
+            trap "kill $pid 2>/dev/null || true" EXIT
+            timeout 50 xdotool search --sync --onlyvisible --name "^Blynx Music$"
+            kill -0 "$pid"
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blynx-linux
+          path: |
+            release/
+            desktop-launch.log
+            desktop/build/reports/tests/
+      - name: Publish Linux prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.files.outputs.tag }}
+          VERSION: ${{ steps.files.outputs.version }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::notice::A release for $TAG already exists. Give new Linux builds a new version."
+            exit 0
+          fi
+          gh release create "$TAG" release/* --target "$GITHUB_SHA" --prerelease \
+            --title "Blynx Music $VERSION for Linux" --notes-file docs/blynx-linux.md

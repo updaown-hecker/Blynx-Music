@@ -49,7 +49,9 @@ def media_state(expected: int) -> None:
         status = adb("shell", "dumpsys", "media_session")
         (QA / "media-session.txt").write_text(status + "\n")
         sessions = re.split(r"(?m)^\s{4}\S.*\(userId=\d+\)", status)
-        if any(APP in session and re.search(rf"state=PlaybackState \{{state={expected}\b", session) for session in sessions):
+        state = rf"state=PlaybackState \{{state=(?:{expected}\b|[A-Z_]+\({expected}\))"
+        package = rf"(?m)^\s*package={re.escape(APP)}\s*$"
+        if any(re.search(package, session) and re.search(state, session) for session in sessions):
             print(f"Media session for {APP} reported state {expected}", flush=True)
             return
         time.sleep(1)

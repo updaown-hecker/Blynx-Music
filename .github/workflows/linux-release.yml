@@ -54,7 +54,10 @@ jobs:
           deb_name=$(dpkg-deb -f "$package" Package)
           dpkg-deb -I "$package"
           rpm -qip release/*.rpm
+          # A headless runner lacks the standard desktop menu directories.
+          sudo install -d /usr/share/applications /usr/share/desktop-directories /etc/xdg/menus
           sudo apt-get install -y "$package"
+          dpkg -s "$deb_name" | grep -Fx "Status: install ok installed"
           launcher=$(dpkg -L "$deb_name" | awk '/\/bin\/BlynxMusic$/ { print }')
           test -x "$launcher"
           export _JAVA_OPTIONS="-Duser.home=$RUNNER_TEMP/blynx-test-home"

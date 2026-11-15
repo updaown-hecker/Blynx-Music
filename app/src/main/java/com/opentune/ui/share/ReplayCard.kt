@@ -528,7 +528,7 @@ fun ReplayShareSheet(summary: ReplaySummary, period: String, onDismiss: () -> Un
                     val b = card ?: return@SheetButton
                     haptics.press()
                     scope.launch {
-                        ShareCard.sendImage(context, b, "Blynx Music-Replay.png", com.opentune.i18n.Tr.f("My {0} on OpenTune · {1}", content.title, content.period), "Replay")
+                        ShareCard.sendImage(context, b, "Blynx Music-Replay.png", com.opentune.i18n.Tr.f("My {0} on Blynx Music · {1}", content.title, content.period), "Replay")
                     }
                 },
             )

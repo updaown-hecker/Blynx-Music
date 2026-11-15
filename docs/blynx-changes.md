@@ -9,3 +9,9 @@ Modified November 14, 2026. Blynx Music derives from OpenTune commit `07acdf9299
 - Disabled automatic version checks and upstream usage reporting by default. Existing settings are still available.
 - Adjusted the platform hash to match the installed Android 37.0 SDK. Added dedicated handset CI and test release workflows.
 - Consulted [lore-glass](https://github.com/Simonstorms/lore-glass) (MIT, Simon Gneuß) for optical behavior. Blynx Music uses the original Android Backdrop dependency for rendering and includes no lore-glass code.
+
+## Version 1.1.0
+
+- Replaced the record mark with a lynx silhouette and a play cutout. The launcher, opening animation and Home header share the plum and citron identity. The Daylist uses the same palette.
+- Widened the clear-glass rim and increased its refraction displacement. The same backdrop lens leaves text and icons sharp. The performance tier uses a lighter lens.
+- Removed the Discord invite from About, the recurring reminder and remotely supplied direct invite banners. Discord listening activity remains available under Account & integrations.

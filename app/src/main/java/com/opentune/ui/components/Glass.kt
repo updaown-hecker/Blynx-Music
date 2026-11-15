@@ -159,8 +159,9 @@ fun Modifier.glass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surface
             backdrop = backdrop,
             shape = { shape },
             effects = {
-                val rim = lensDepth(11.dp.toPx(), size.minDimension)
-                lens(rim, rim * 0.8f, depthEffect = true, chromaticAberration = false)
+                val rim = lensDepth((if (lite) 13.dp else 17.dp).toPx(), size.minDimension)
+                val strength = if (lite) 0.95f else 1.2f
+                lens(rim, rim * strength, depthEffect = true, chromaticAberration = false)
             },
             highlight = null,
             shadow = { Shadow.Default },

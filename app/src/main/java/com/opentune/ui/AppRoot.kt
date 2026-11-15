@@ -209,15 +209,12 @@ fun AppRoot(vm: PlayerViewModel) {
     if (whatsNew.isNotEmpty() && update == null) {
         com.opentune.ui.components.WhatsNewSheet(whatsNew, com.opentune.BuildConfig.VERSION_NAME, onDismiss = { whatsNew = emptyList() })
     }
-    // Once a month each, after some days of use, a GitHub star or Discord invitation,
-    // sliding up above the dock; never over an update or What's new, and not
-    // straight after opening.
-    var invite by remember { mutableStateOf<com.opentune.ui.components.Support.Invite?>(null) }
+    // After a few days of use, ask about a GitHub star at most once a month.
+    // Leave time for startup and keep the invitation clear of update screens.
     var askStar by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(45_000)
-        invite = com.opentune.ui.components.Support.due(appContext)
-        askStar = invite != null
+        askStar = com.opentune.ui.components.Support.shouldAskForStar(appContext)
     }
     val starCard: @Composable () -> Unit = {
         val runtime by com.opentune.data.config.RemoteConfig.state.collectAsState()
@@ -226,7 +223,7 @@ fun AppRoot(vm: PlayerViewModel) {
             enter = androidx.compose.animation.slideInVertically(spring(dampingRatio = 0.8f, stiffness = 300f)) { it } + fadeIn(),
             exit = androidx.compose.animation.slideOutVertically(tween(220)) { it } + fadeOut(tween(180)),
         ) {
-            invite?.let { com.opentune.ui.components.InviteCard(it, onDismiss = { askStar = false }) }
+            com.opentune.ui.components.StarInviteCard(onDismiss = { askStar = false })
         }
     }
     update?.let { r ->

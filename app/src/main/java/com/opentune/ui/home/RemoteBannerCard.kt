@@ -31,3 +31,11 @@ internal fun RemoteBannerCard(banner: RemoteBanner) {
         }
     }
 }
+
+internal fun com.opentune.data.config.RemoteBanner.isDiscordInvite(): Boolean {
+    val target = android.net.Uri.parse(url)
+    val host = target.host?.lowercase()
+    return host == "discord.gg" || host == "www.discord.gg" ||
+        (host in setOf("discord.com", "www.discord.com", "discordapp.com", "www.discordapp.com") &&
+            target.pathSegments.firstOrNull()?.equals("invite", ignoreCase = true) == true)
+}

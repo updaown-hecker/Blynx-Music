@@ -31,9 +31,8 @@ object Opening {
     var played = false
 }
 
-/** The splash's black, which the system splash screen and the icon use too. */
-val OPENING_FIELD = Color(0xFF42202A)
-private val OPENING_MARK = Color(0xFFFFEEE7)
+/** Shared with Android's system splash and the launcher icon. */
+val OPENING_FIELD = BlynxPlum
 
 /**
  * The opening: the mark takes over from the system splash at the same
@@ -76,9 +75,12 @@ fun OpeningReveal(onDive: (Float) -> Unit, onDone: () -> Unit) {
         drawRect(OPENING_FIELD, alpha = fade)
         // A white rim that stays the same width on screen however big the mark gets.
         val rim = Stroke(width = RIM.toPx() / s, join = StrokeJoin.Round)
-        translate(center.x - MARK_VIEWPORT / 2f * s, center.y - MARK_VIEWPORT / 2f * s) {
+        // Aim the dive through the opaque cheek so the play cutout exits frame.
+        val aim = smooth(0.07f, 0.55f, d)
+        val anchor = Offset(MARK_VIEWPORT / 2f - 16f * aim, MARK_VIEWPORT / 2f - aim)
+        translate(center.x - anchor.x * s, center.y - anchor.y * s) {
             scale(s, s, pivot = Offset.Zero) {
-                drawPath(mark, OPENING_MARK, alpha = 1f - window)
+                drawPath(mark, BlynxCitron, alpha = 1f - window)
                 // A band of light that runs across the mark once as it settles.
                 if (st in 0.05f..0.98f && d == 0f) {
                     val x = -30f + 170f * st

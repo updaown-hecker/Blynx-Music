@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,10 +69,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.opentune.R
 import com.opentune.data.MusicRepository
 import com.opentune.data.ContentFilter
 import com.opentune.data.history.History
@@ -85,6 +88,8 @@ import com.opentune.data.settings.AppSettings
 import com.opentune.ui.browse.SongActions
 import com.opentune.ui.components.SongRowPlaceholder
 import com.opentune.ui.components.Artwork
+import com.opentune.ui.components.BlynxCitron
+import com.opentune.ui.components.BlynxPlum
 import com.opentune.ui.components.ErrorState
 import com.opentune.ui.components.GlassIconButton
 import com.opentune.ui.components.ItemCard
@@ -370,13 +375,30 @@ fun HomeScreen(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("Blynx Music", style = MaterialTheme.typography.displaySmall, maxLines = 2)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Image(
+                                    painterResource(R.drawable.ic_launcher_foreground),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(42.dp)
+                                        .clip(MaterialTheme.shapes.medium)
+                                        .background(BlynxPlum),
+                                )
+                                Text(
+                                    "Blynx Music",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    maxLines = 2,
+                                )
+                            }
                             Text(
                                 listOfNotNull(com.opentune.ui.theme.tr(greeting), firstName).joinToString(", "),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 6.dp),
                             )
                         }
                         if (onRecognize != null) {
@@ -398,7 +420,10 @@ fun HomeScreen(
             }
             if (ui.homeStreaks && badges.isNotEmpty()) item(key = "streaks") { StreakPills(badges) }
             item(key = "festival") { FestivalCard() }
-            itemsIndexed(runtime.banners.filter { platform in it.platforms && it.id !in closedBanners }, key = { _, banner -> "remote-banner:${banner.id}" }) { _, banner ->
+            val banners = runtime.banners.filter { banner ->
+                platform in banner.platforms && banner.id !in closedBanners && !banner.isDiscordInvite()
+            }
+            itemsIndexed(banners, key = { _, banner -> "remote-banner:${banner.id}" }) { _, banner ->
                 RemoteBannerCard(banner)
             }
             // Home's top stays put: Speed dial, the daylist, Quick picks. Under it, the rows made
@@ -692,32 +717,31 @@ private fun homeOrder(personal: List<com.opentune.data.reco.HomeLayout.Personal>
 /** A daylist gives its artwork and title equal weight, with one play target. */
 @Composable
 internal fun DaylistHero(mix: com.opentune.data.history.DailyMixes.Mix, onPlay: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.extraLarge
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)
-            .clip(shape).background(colors.surfaceContainer)
+            .clip(shape).background(BlynxPlum)
             .clickable(onClickLabel = com.opentune.ui.theme.tr("Play"), onClick = onPlay)
             .padding(18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Daylist", style = MaterialTheme.typography.labelLarge, color = colors.primary)
+            Text("Daylist", style = MaterialTheme.typography.labelLarge, color = BlynxCitron)
             Text(
                 mix.title, style = MaterialTheme.typography.headlineSmall,
-                color = colors.onSurface, maxLines = 3,
+                color = androidx.compose.ui.graphics.Color.White, maxLines = 3,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
             Row(
-                Modifier.clip(CircleShape).background(colors.primary)
+                Modifier.clip(CircleShape).background(BlynxCitron)
                     .padding(start = 9.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp), tint = colors.onPrimary)
+                Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp), tint = BlynxPlum)
                 Spacer(Modifier.width(5.dp))
-                Text("Play", style = MaterialTheme.typography.labelLarge, color = colors.onPrimary)
+                Text("Play", style = MaterialTheme.typography.labelLarge, color = BlynxPlum)
             }
         }
         val covers = mix.covers

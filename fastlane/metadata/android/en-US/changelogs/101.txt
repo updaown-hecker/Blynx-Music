@@ -1,0 +1,3 @@
+A new Blynx lynx-and-play mark for the launcher, splash and Home.
+Stronger untinted edge refraction in Clear refraction mode.
+Removed Discord community invitations. Optional Discord listening activity is still available.

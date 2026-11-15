@@ -70,10 +70,20 @@ jobs:
           done
           [[ "$adb_ready" == 1 ]]
           # Run the application with no network and no account.
-          adb shell cmd connectivity airplane-mode enable
-          adb shell cmd wifi set-wifi-enabled disabled
-          adb shell cmd connectivity airplane-mode | grep -q enabled
-          adb shell cmd wifi status | grep -Ei 'wi-?fi is disabled'
+          offline=0
+          for attempt in {1..12}; do
+            adb shell cmd connectivity airplane-mode enable || true
+            adb shell cmd wifi set-wifi-enabled disabled || true
+            airplane="$(adb shell settings get global airplane_mode_on | tr -d '\r' || true)"
+            wifi="$(adb shell cmd wifi status | tr -d '\r' || true)"
+            if [[ "$airplane" == 1 ]] && grep -Eiq 'wi-?fi is disabled' <<< "$wifi"; then
+              offline=1
+              break
+            fi
+            sleep 2
+          done
+          printf 'Airplane mode: %s\n%s\n' "$airplane" "$wifi"
+          [[ "$offline" == 1 ]]
           adb shell input keyevent KEYCODE_WAKEUP
           adb shell wm dismiss-keyguard
           adb install qa/*-universal.apk

@@ -92,9 +92,19 @@ jobs:
           adb shell am start -W -a android.intent.action.MAIN \
             -c android.intent.category.LAUNCHER \
             -n vip.blynx.music/vip.blynx.music.icon.Classic | tee qa/launch.txt
-          grep -q '^Status: ok' qa/launch.txt
-          adb shell dumpsys activity activities > qa/activities.txt
-          grep -E '(topResumedActivity|mResumedActivity).*vip.blynx.music' qa/activities.txt
+          # A cold emulator can outlast am start -W's own timeout. Verify
+          # the final resumed activity and retain logs even if it never appears.
+          resumed=0
+          for attempt in {1..16}; do
+            adb shell dumpsys activity activities >qa/activities.txt
+            if grep -E '(topResumedActivity|mResumedActivity).*vip.blynx.music' qa/activities.txt; then
+              resumed=1
+              break
+            fi
+            sleep 2
+          done
+          adb logcat -d -b crash >qa/crash.txt
+          [[ "$resumed" == 1 ]]
           adb exec-out screencap -p >qa/launch.png
           timeout 230 python3 scripts/android-smoke-playback.py
           adb logcat -d -b crash >qa/crash.txt

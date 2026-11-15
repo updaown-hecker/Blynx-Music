@@ -75,12 +75,19 @@ def make_track() -> None:
 
 
 def main() -> None:
+    adb("shell", "am", "force-stop", APP)
+    # The first launch is checked by the workflow. Start playback QA with a
+    # returning-listener fixture, which needs no account or initial permissions.
+    settings = '<map><string name="state_v2">{"ui":{"welcome":"SEEN"}}</string></map>\n'
+    adb("shell", "run-as", APP, "mkdir", "-p", "shared_prefs")
+    subprocess.run(
+        ["adb", "shell", f"run-as {APP} sh -c 'cat > shared_prefs/settings.xml'"],
+        input=settings, text=True, check=True, timeout=20,
+    )
+    make_track()
+    adb("shell", "am", "start", "-W", "-n", f"{APP}/{APP}.icon.Classic")
     adb("shell", "settings", "put", "global", "animator_duration_scale", "0")
     tap("DON’T ALLOW", attempts=3, required=False)
-    tap("Skip")
-    tap("Continue")
-    tap("Not now")
-    make_track()
     tap("Library")
     tap("On this phone")
     tap(TRACK)

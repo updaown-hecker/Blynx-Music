@@ -8,10 +8,9 @@ const STORE_BUILD = process.env.OPENTUNE_STORE_BUILD === '1';
 
 /**
  * Discord presence is user-token automation (prompt §7.3), so it is a build
- * flag: on for the site's own zips, off for a Web Store upload unless
- * DISCORD_PRESENCE=1 says otherwise.
+ * flag. It is off unless the builder sets DISCORD_PRESENCE=1.
  */
-const DISCORD_PRESENCE = process.env.DISCORD_PRESENCE ? process.env.DISCORD_PRESENCE === '1' : !STORE_BUILD;
+const DISCORD_PRESENCE = process.env.DISCORD_PRESENCE === '1';
 const DISCORD_ORIGINS = ['https://discord.com/*'];
 /** OpenTune's own Discord application, for cover images and buttons; empty leaves both to plain links. */
 const DISCORD_APP_ID = (process.env.DISCORD_APP_ID ?? '').trim();
@@ -30,9 +29,9 @@ export default defineConfig({
     },
   }),
   manifest: ({ browser }) => ({
-    name: 'OpenTune',
-    description: 'Connects the OpenTune web player to YouTube Music, Spotify and Discord.',
-    homepage_url: 'https://justshivv.github.io/Opentune/player/',
+    name: 'Blynx Music',
+    description: 'Connects the Blynx Music web player to YouTube Music and Spotify.',
+    homepage_url: 'https://blynx-music.updaown.chatgpt.site/player/',
     // `cookies` reads the YouTube session for signed-in requests (phase 5);
     // the cookies themselves never leave the extension (lib/ytAuth.ts).
     // `scripting` reads the Discord token from a discord.com tab, and only on
@@ -62,7 +61,7 @@ export default defineConfig({
       ? {
           browser_specific_settings: {
             gecko: {
-              id: 'web-extension@opentune.app',
+              id: 'web-extension@blynx.vip',
               strict_min_version: '128.0',
               data_collection_permissions: { required: ['none'] },
             },

@@ -17,11 +17,11 @@ export interface Download {
 
 /**
  * The two builds, as published (extension.json): the zip and the folder in it
- * carry the version, "opentune-extension-chrome (0.4.3)". Before that file
+ * carry the version, "blynx-extension-chrome (0.4.3)". Before that file
  * has loaded, the configured URLs and the unversioned names stand in.
  */
 export function downloadsFor(published: PublishedExtension | null): Download[] {
-  const folder = (browser: Browser) => `opentune-extension-${browser}${published ? ` (${published.version})` : ''}`;
+  const folder = (browser: Browser) => `blynx-extension-${browser}${published ? ` (${published.version})` : ''}`;
   return [
     {
       browser: 'chrome',
@@ -51,7 +51,7 @@ export function downloadsFor(published: PublishedExtension | null): Download[] {
         `Extract the zip. It holds one folder, ${folder('firefox')}.`,
         'Open about:debugging#/runtime/this-firefox and choose Load Temporary Add-on.',
         'Select manifest.json inside that folder.',
-        'Firefox removes temporary add-ons when it quits; a signed version is coming.',
+        'Firefox removes temporary add-ons when it quits. This build is unsigned.',
       ],
       updateSteps: [
         `Extract the new zip. It holds ${folder('firefox')}.`,

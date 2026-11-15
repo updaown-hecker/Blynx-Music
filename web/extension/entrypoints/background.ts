@@ -40,8 +40,12 @@ function allowed(sender: Browser.runtime.MessageSender): boolean {
   const origin = originOf(sender);
   if (origin === OWN_ORIGIN && sender.id === browser.runtime.id) return true;
   if (!origin || !ALLOWED_ORIGINS.has(origin) || !sender.url) return false;
-  const url = new URL(sender.url);
-  return origin !== 'https://justshivv.github.io' || url.pathname.startsWith('/Opentune/player/');
+  try {
+    const url = new URL(sender.url);
+    return url.origin === origin && (origin === 'http://localhost:5173' || url.pathname.startsWith('/player/'));
+  } catch {
+    return false;
+  }
 }
 
 function failure(id: string, error: unknown): BridgeResponse {

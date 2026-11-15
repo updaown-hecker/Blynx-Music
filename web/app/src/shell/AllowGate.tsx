@@ -10,7 +10,7 @@ import { isMobileBrowser } from '@/lib/platform';
 import { LYRIC_EXTENSION_ORIGINS } from '@/lyrics/http';
 
 const mobile = isMobileBrowser();
-/** Safari has no OpenTune extension: the popup says which browsers do. */
+/** Safari has no Blynx Music extension: the popup says which browsers do. */
 const safari = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 const DONE_KEY = 'opentune:allow-gate-done';
 
@@ -64,9 +64,9 @@ function useAddonAccess(present: boolean) {
 }
 
 /**
- * The web player's first-run popup: install the OpenTune extension, then let it
+ * The web player's first-run popup: install the Blynx Music extension, then let it
  * reach the lyric providers and the audio add-ons' hosts. The player behind it
- * is locked until all three are done. Phones skip it: their browsers can't run
+ * can be browsed while setup is deferred. Phones skip it: their browsers can't run
  * the extension, and the shell already points them at the app.
  */
 export function useAllowGate(): { locked: boolean; gate: ReactNode } {
@@ -94,6 +94,7 @@ export function useAllowGate(): { locked: boolean; gate: ReactNode } {
 
   // Once open it stays open until "Start Listening", so the last step's tick is seen.
   const [open, setOpen] = useState(false);
+  const [deferred, setDeferred] = useState(false);
   useEffect(() => {
     if (needed) setOpen(true);
   }, [needed]);
@@ -115,7 +116,7 @@ export function useAllowGate(): { locked: boolean; gate: ReactNode } {
       .catch((e: unknown) => setHint(e instanceof Error ? e.message : 'The extension couldn’t open its permission page.'));
   }, [addons.waiting]);
 
-  const shown = needed || open;
+  const shown = !deferred && (needed || open);
   if (!shown) return { locked: false, gate: null };
 
   return {
@@ -133,6 +134,7 @@ export function useAllowGate(): { locked: boolean; gate: ReactNode } {
         onAllowLyrics={allowLyrics}
         onAllowAddons={allowAddons}
         onFinish={() => setOpen(false)}
+        onDefer={() => { setDeferred(true); setOpen(false); }}
       />
     ),
   };
@@ -150,6 +152,7 @@ interface GateProps {
   onAllowLyrics: () => void;
   onAllowAddons: () => void;
   onFinish: () => void;
+  onDefer: () => void;
 }
 
 const allowButton =
@@ -215,16 +218,16 @@ function GateDialog(props: GateProps) {
         <p className="mt-1.5 type-body text-secondary text-pretty">
           {allDone
             ? 'The extension is connected and can reach your lyric providers and audio add-ons.'
-            : 'The OpenTune extension does the work a web page isn’t allowed to: playback, sign-in, lyrics from most providers and lossless add-ons. Finish these steps to start listening.'}
+            : 'Install the Blynx Music extension for YouTube Music playback and sign-in. Lyrics and audio add-ons can request access to their own providers.'}
         </p>
 
         <ol className="mt-3 divide-y-[0.5px] divide-divider" aria-live="polite">
           <Step
             n={1}
-            title="Install the OpenTune extension"
+            title="Install the Blynx Music extension"
             detail={
               safari
-                ? 'Safari can’t run it. Open OpenTune in Chrome, Edge, Brave or Firefox.'
+                ? 'Safari can’t run it. Open Blynx Music in Chrome, Edge, Brave or Firefox.'
                 : 'This page notices it on its own once it’s loaded.'
             }
             state={extensionStep}
@@ -295,6 +298,11 @@ function GateDialog(props: GateProps) {
           </p>
         )}
 
+        {!allDone && (
+          <button type="button" className="mt-4 self-end rounded-pill px-4 py-2 type-body-emphasized text-key hover:bg-quaternary" onClick={props.onDefer}>
+            Browse without setup
+          </button>
+        )}
         {allDone && (
           <button
             type="button"

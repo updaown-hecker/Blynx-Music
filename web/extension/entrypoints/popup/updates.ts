@@ -37,7 +37,7 @@ export function mountUpdates(parent: HTMLElement): void {
           }
         } catch { /* Firefox and unpacked installs may not support this API. */ }
       }
-      const endpoint = 'https://justshivv.github.io/Opentune/player/downloads/extension.json';
+      const endpoint = 'https://blynx-music.updaown.chatgpt.site/player/downloads/extension.json';
       const response = await fetch(endpoint, { cache: 'no-store', signal: AbortSignal.timeout(10_000) });
       if (!response.ok) throw new Error('Update service is unavailable. Try again later.');
       const release = await response.json() as { version?: string; files?: { chrome?: string; firefox?: string } };
@@ -50,7 +50,7 @@ export function mountUpdates(parent: HTMLElement): void {
       }
       if (!newer) { status.textContent = `You're up to date (v${release.version}).`; return; }
       const file = firefox ? release.files?.firefox : release.files?.chrome;
-      if (!file || !/^opentune-extension-[^/\\]+\.zip$/.test(file)) throw new Error('The update download is invalid.');
+      if (!file || !/^blynx-extension-[^/\\]+\.zip$/.test(file)) throw new Error('The update download is invalid.');
       status.textContent = `v${release.version} is available. Browser-store installs update automatically. For a ZIP install, download, replace the unpacked files, then reload it in the extension manager.`;
       download.href = new URL(encodeURIComponent(file), endpoint).href;
       download.textContent = `Download v${release.version}`;

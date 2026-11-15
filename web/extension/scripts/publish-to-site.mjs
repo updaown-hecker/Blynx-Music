@@ -1,11 +1,11 @@
 // Zips the built extension for the site's Extension page and writes the
 // manifest the page checks for updates:
 //
-//   web/app/public/downloads/opentune-extension-chrome (<version>).zip
-//   web/app/public/downloads/opentune-extension-firefox (<version>).zip
+//   web/app/public/downloads/blynx-extension-chrome (<version>).zip
+//   web/app/public/downloads/blynx-extension-firefox (<version>).zip
 //   web/app/public/downloads/extension.json    { version, builtAt, files }
 //
-// Each zip holds a single folder (opentune-extension-<browser> (<version>)/) rather than
+// Each zip holds a single folder (blynx-extension-<browser> (<version>)/) rather than
 // loose files, so "Extract here" leaves one tidy folder to load unpacked.
 //
 //   corepack pnpm --dir web/extension package   (builds both, then runs this)
@@ -19,7 +19,7 @@ const output = fileURLToPath(new URL('../.output/', import.meta.url));
 const target = fileURLToPath(new URL('../../app/public/downloads/', import.meta.url));
 mkdirSync(target, { recursive: true });
 // Each version's zips are named for it; the previous ones go.
-for (const name of readdirSync(target)) if (/^opentune-extension-.*\.zip$/.test(name)) rmSync(join(target, name));
+for (const name of readdirSync(target)) if (/^blynx-extension-.*\.zip$/.test(name)) rmSync(join(target, name));
 
 function filesUnder(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -40,14 +40,16 @@ for (const [browser, folder] of Object.entries(builds)) {
   }
   version = manifest.version;
 
-  // The version in brackets, on the zip and the folder inside it: "opentune-extension-chrome (0.4.3)".
-  const parent = `opentune-extension-${browser} (${manifest.version})`;
+  // The version in brackets, on the zip and the folder inside it: "blynx-extension-chrome (0.4.3)".
+  const parent = `blynx-extension-${browser} (${manifest.version})`;
   const entries = {};
   for (const file of filesUnder(root)) {
     entries[`${parent}/${relative(root, file).split(sep).join('/')}`] = readFileSync(file);
   }
   const name = `${parent}.zip`;
-  writeFileSync(join(target, name), zipSync(entries, { level: 9 }));
+  const zip = zipSync(entries, { level: 9 });
+  writeFileSync(join(target, name), zip);
+  writeFileSync(join(target, `blynx-extension-${browser}.zip`), zip);
   files[browser] = name;
   console.log(`${folder} -> app/public/downloads/${name} (${parent}/, v${version})`);
 }

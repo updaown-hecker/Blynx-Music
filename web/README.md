@@ -1,8 +1,10 @@
-# OpenTune web preview
+# Blynx Music Web
 
 This extends the existing GPL-3.0 BitChord React player and WXT browser extension at commit `edc1e6f36febf71a118e649411d2fc21b70ead45`. It reuses that implementation rather than rebuilding the web app. Upstream design/research notes are preserved under `docs/` with their original attribution.
 
 OpenTune changes include branding, GitHub/Discord community links, URL audio add-ons, measured direct-FLAC validation, background quality upgrades, a separate extension identity, and GitHub Pages routing under `/Opentune/player/`. Chrome and Firefox extensions use the same protocol. Google/Spotify session cookies remain inside the extension; the player receives metadata and request results.
+
+The Blynx build serves the existing React player at [/player/](https://blynx-music.updaown.chatgpt.site/player/). It retains the upstream browser library, discovery, search, queue, lyrics, and optional integrations. The native Android app remains a separate build for phone-specific playback and device controls.
 
 ## Build
 
@@ -17,9 +19,9 @@ pnpm --filter @opentune/extension icons
 pnpm build:site
 ```
 
-The test command downloads checksum-verified JSON fixtures from the pinned upstream commit if absent. There are no production API calls during those tests. `app/dist/` contains the site and packaged extensions under `downloads/`. The preview workflow uploads it as an artifact. GitHub Pages builds and publishes it at https://justshivv.github.io/Opentune/player/ on updates to main.
+The test command downloads checksum-verified JSON fixtures from the pinned upstream commit if absent. There are no production API calls during those tests. `app/dist/` contains the site and packaged extensions under `downloads/`. The Blynx Web workflow uploads it as a GitHub Actions artifact. The live version is deployed through Sites.
 
-For development run `pnpm dev` and `pnpm dev:ext`. The app uses a hash router so refreshing a nested route works on GitHub Pages. The production base is `/Opentune/player/`; set `OPENTUNE_WEB_BASE=/` for another root deployment and adjust extension allowed origins/paths deliberately.
+For development, run `pnpm dev` and `BLYNX_DEV_BRIDGE=1 pnpm dev:ext`. Production uses a hash router at `/player/`. A different deployment needs a matching `BLYNX_WEB_BASE` and changes to the extension site allowlist and runtime sender checks.
 
 ## Audio add-ons
 
@@ -29,10 +31,10 @@ This browser preview supports **direct FLAC with CORS-enabled media**. Android a
 
 ## Known platform limits
 
-- Browser playback requires the OpenTune extension. It is not yet published to browser stores; install a preview package in developer mode. Firefox release installation requires Mozilla signing; temporary loading is suitable for testing.
+- YouTube Music browser playback requires the Blynx Music extension. It is not yet published to browser stores; install a preview package in developer mode. Firefox release installation requires Mozilla signing; temporary loading is suitable for testing.
 - Native phone-to-TV QR sign-in is implemented in the Android app, using encrypted local-network pairing. It is not a web OAuth substitute and is not available in the JavaFX desktop or Wear UI.
 - Android uses Nostr rooms; the inherited browser room protocol is different. Browser rooms require a separately configured compatible server. No upstream public server is silently selected, and cross-platform room interoperability is not claimed.
-- Discord community links work normally. Upstream optional Discord account automation is disabled by default at build time.
+- The Blynx web release omits Discord community invitations. The inherited optional listening-status integration can be included with `DISCORD_PRESENCE=1` when building the extension.
 - Android-only visual customisations and device-output controls are not all represented in this browser preview.
 
 See [the addon author guide](../docs/audio-addons.md) and [the starter](../examples/audio-addon/README.md).

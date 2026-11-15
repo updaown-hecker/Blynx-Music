@@ -68,8 +68,8 @@
   /* ---- Colour: light ----------------------------------------------------- */
   color-scheme: light;
 
-  --pageBG: #ffffff;
-  --pageBG-rgb: 255, 255, 255;
+  --pageBG: #fffbf8;
+  --pageBG-rgb: 255, 251, 248;
 
   --systemPrimary: #000000e0;
   --systemSecondary: #0000008f;
@@ -81,12 +81,12 @@
   --systemSecondary-onDark: #ffffffa3;
   --systemTertiary-onDark: #ffffff66;
 
-  --keyColor: #d60017;
-  --keyColor-rgb: 214, 0, 23;
-  --keyColor-rollover: #a20000;
-  --keyColor-pressed: #bb0000;
-  --keyColorBG: #d60017;
-  --selectionColor: #d60017;
+  --keyColor: #813550;
+  --keyColor-rgb: 129, 53, 80;
+  --keyColor-rollover: #60253d;
+  --keyColor-pressed: #6d2c45;
+  --keyColorBG: #813550;
+  --selectionColor: #813550;
   --keyColor-focus-color: rgba(var(--keyColor-rgb), 0.6);
 
   --systemRed: #ff3b30;
@@ -171,8 +171,8 @@
   :root {
     color-scheme: dark;
 
-    --pageBG: #1f1f1f;
-    --pageBG-rgb: 31, 31, 31;
+    --pageBG: #17111a;
+    --pageBG-rgb: 23, 17, 26;
 
     --systemPrimary: #ffffffeb;
     --systemSecondary: #ffffffa3;
@@ -180,12 +180,12 @@
     --systemQuaternary: #ffffff1a;
     --systemQuinary: #ffffff0d;
 
-    --keyColor: #fa586a;
-    --keyColor-rgb: 250, 88, 106;
-    --keyColor-rollover: #ff5f7a;
-    --keyColor-pressed: #ff4661;
-    --keyColorBG: #fa233b;
-    --selectionColor: #c11b2e;
+    --keyColor: #f4f5aa;
+    --keyColor-rgb: 244, 245, 170;
+    --keyColor-rollover: #ffffcf;
+    --keyColor-pressed: #d7d88a;
+    --keyColorBG: #813550;
+    --selectionColor: #813550;
 
     --systemRed: #ff453a;
     --systemGreen: #32d74b;

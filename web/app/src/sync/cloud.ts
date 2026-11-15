@@ -7,7 +7,8 @@ const fields = ['opentune:appearance', 'opentune:player', 'opentune:session', 'o
 type Field = typeof fields[number];
 type State = Partial<Record<Field, string>>;
 type Remote = { revision: number; state: State };
-type SyncStatus = 'Connect YouTube Music to sync' | 'Syncing…' | 'Synced' | 'Sync unavailable';
+class SyncSignIn extends Error {}
+type SyncStatus = 'Sign in to Blynx to sync' | 'Google account email unavailable' | 'Connect YouTube Music to sync' | 'Syncing…' | 'Synced' | 'Sync unavailable';
 const PROFILE = 'blynx:sync-profile';
 const ACK = 'blynx:sync-confirmed';
 export const useCloudStatus = create<{ status: SyncStatus }>(() => ({ status: 'Connect YouTube Music to sync' }));
@@ -79,7 +80,7 @@ export function useWebSync() {
   const identity = email && channel ? `${email}\n${channel.brand ? channel.id.split(':').slice(1).join(':') : 'personal'}` : '';
 
   useEffect(() => {
-    if (!identity) { setStatus('Connect YouTube Music to sync'); return; }
+    if (!identity) { setStatus(channel ? 'Google account email unavailable' : 'Connect YouTube Music to sync'); return; }
     const controller = new AbortController();
     const { signal } = controller;
     let timer: number | undefined;
@@ -92,6 +93,7 @@ export function useWebSync() {
       const endpoint = `/api/blynx-sync/${profile}`;
       async function get(): Promise<Remote> {
         const response = await fetch(endpoint, { cache: 'no-store', signal });
+        if (response.status === 401) throw new SyncSignIn();
         if (!response.ok) throw new Error('Sync unavailable');
         const saved: Remote = await response.json();
         if (saved.state[CUSTOM_CSS_KEY] !== undefined) {
@@ -135,6 +137,7 @@ export function useWebSync() {
                 body: JSON.stringify({ revision: remote.revision, state }), signal,
               });
               if (response.status === 409) { remote = await get(); continue; }
+              if (response.status === 401) throw new SyncSignIn();
               if (!response.ok) throw new Error('Could not save');
               remote = await response.json();
               last = current;
@@ -146,14 +149,14 @@ export function useWebSync() {
             throw new Error('Sync conflict');
           }
           setStatus('Synced');
-        } catch { if (!signal.aborted) setStatus('Sync unavailable'); }
+        } catch (error) { if (!signal.aborted) setStatus(error instanceof SyncSignIn ? 'Sign in to Blynx to sync' : 'Sync unavailable'); }
         finally { busy = false; }
       }
       await save();
       if (!signal.aborted) timer = window.setInterval(() => { void save(); }, 5000);
     }
 
-    void start().catch(() => { if (!signal.aborted) setStatus('Sync unavailable'); });
+    void start().catch((error: unknown) => { if (!signal.aborted) setStatus(error instanceof SyncSignIn ? 'Sign in to Blynx to sync' : 'Sync unavailable'); });
     return () => { controller.abort(); window.clearInterval(timer); };
-  }, [identity]);
+  }, [identity, channel !== null && channel !== undefined]);
 }

@@ -288,7 +288,9 @@ export default function SettingsPage() {
               </div>
               <div className={settingsUi.row}>
                 <span>Web sync</span>
-                <span className={settingsUi.value} role="status">{cloudStatus}</span>
+                {cloudStatus === 'Sign in to Blynx to sync' ? (
+                  <a href="/signin-with-chatgpt?return_to=%2Fplayer%2F%23%2Fsettings" target="_top" className="text-key hover:underline">Sign in to sync</a>
+                ) : <span className={settingsUi.value} role="status">{cloudStatus}</span>}
               </div>
               <LinkRow to="/settings/discord" icon={<Glyph Icon={SiDiscord} color="#5865f2" />} title="Discord" value={discordText} />
               <LinkRow

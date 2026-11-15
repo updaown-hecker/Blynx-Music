@@ -23,8 +23,8 @@ def screenshot(name: str) -> None:
     (QA / f"{name}.png").write_bytes(image)
 
 
-def tap(label: str) -> None:
-    for _ in range(8):
+def tap(label: str, *, attempts: int = 8, required: bool = True) -> None:
+    for _ in range(attempts):
         try:
             adb("shell", "uiautomator", "dump", "--compressed", "/data/local/tmp/blynx.xml", timeout=18)
             state = adb("exec-out", "cat", "/data/local/tmp/blynx.xml")
@@ -40,7 +40,8 @@ def tap(label: str) -> None:
         except (subprocess.SubprocessError, ET.ParseError):
             pass
         time.sleep(1)
-    raise AssertionError(f"Could not find {label!r}")
+    if required:
+        raise AssertionError(f"Could not find {label!r}")
 
 
 def media_state(expected: int) -> None:
@@ -75,6 +76,7 @@ def make_track() -> None:
 
 def main() -> None:
     adb("shell", "settings", "put", "global", "animator_duration_scale", "0")
+    tap("DON’T ALLOW", attempts=3, required=False)
     tap("Skip")
     tap("Continue")
     tap("Not now")

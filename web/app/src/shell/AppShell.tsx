@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useWebSync } from '@/sync/cloud';
 import { Toaster } from '@/components/Toast';
 import '@/together/room';
 import { useDiscordPresence } from '@/playback/discordPresence';
@@ -113,6 +114,7 @@ function useScrollEdge() {
  */
 export function AppShell() {
   useKeyboardShortcuts();
+  useWebSync();
   useNowPlayingTitle();
   useDiscordPresence();
   usePageScroll();
@@ -167,7 +169,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="grid h-full grid-rows-[minmax(0,1fr)_auto]" inert={locked}>
+    <div className="grid h-full grid-rows-[minmax(0,1fr)_auto]" inert={locked} data-blynx-style={pathname !== "/settings/appearance" ? "" : undefined}>
       {/* The side panel slides in from beyond the right edge; never let it scroll the page. */}
       <div className="relative min-h-0 overflow-hidden">
         <Appearance />

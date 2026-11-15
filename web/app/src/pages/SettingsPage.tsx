@@ -2,6 +2,7 @@ import { ArrowUpRight, AudioLines, ChevronRight, Info, Mic2, Palette, Play, Plug
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { MdOutlineExtension } from 'react-icons/md';
 import { SiApplemusic, SiDiscord, SiGithub, SiSpotify, SiYoutubemusic } from 'react-icons/si';
+import { useCloudStatus } from '@/sync/cloud';
 import { PageHeader } from '@/components/PageHeader';
 import { PrefetchLink } from '@/components/PrefetchLink';
 import { LogoMark } from '@/components/icons/LogoMark';
@@ -201,6 +202,7 @@ export default function SettingsPage() {
   const sourcesText = [sources ? `${sources} add-on${sources === 1 ? '' : 's'}` : 'No add-ons', jioSaavn ? 'JioSaavn' : null].filter(Boolean).join(' · ');
   const present = extension.state === 'present';
   const current = useCurrentSection();
+  const cloudStatus = useCloudStatus((s) => s.status);
   const discordText = !present
     ? 'Needs the extension'
     : discord.state === 'ready' && discord.discord.connected
@@ -219,6 +221,9 @@ export default function SettingsPage() {
         <SectionNav current={current} />
         <div className="ot-set-content">
           <ExtensionCard />
+          <section className={settingsUi.group} aria-label="Appearance shortcuts">
+            <LinkRow to="/settings/appearance" icon={<Glyph Icon={Palette} color="#813550" />} title="Appearance" value="Theme, Liquid Glass and custom CSS" />
+          </section>
 
           <Section id="audio" title="Audio">
             <section className={settingsUi.group}>
@@ -280,6 +285,10 @@ export default function SettingsPage() {
                 <Glyph Icon={SiSpotify} color="#1ed760" ink="#000000" />
                 <span className={settingsUi.integrationName}>Spotify</span>
                 {present ? <SpotifyIntegration /> : <span className={settingsUi.value}>Needs the extension</span>}
+              </div>
+              <div className={settingsUi.row}>
+                <span>Web sync</span>
+                <span className={settingsUi.value} role="status">{cloudStatus}</span>
               </div>
               <LinkRow to="/settings/discord" icon={<Glyph Icon={SiDiscord} color="#5865f2" />} title="Discord" value={discordText} />
               <LinkRow

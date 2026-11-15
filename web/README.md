@@ -38,3 +38,9 @@ This browser preview supports **direct FLAC with CORS-enabled media**. Android a
 - Android-only visual customisations and device-output controls are not all represented in this browser preview.
 
 See [the addon author guide](../docs/audio-addons.md) and [the starter](../examples/audio-addon/README.md).
+
+## Appearance and account sync
+
+The **Appearance** navigation item opens themes, Liquid Glass and the browser's player styles. Desktop browsers can edit or open a CSS file. The editor limits selectors and declarations to supported visual changes and keeps a Reset action outside the applied styles.
+
+The private Sites deployment stores sync data in D1. It scopes writes to the authenticated Sites identity and an opaque partition derived from the Google/YouTube Music profile already available through the extension. Use the same Sites and YouTube Music accounts across browsers. The browser syncs appearance, playback preferences, queue and resume position, recent searches, supported lyric preferences and CSS. YouTube Music remains the source for its own library and history. Google cookies, service keys, add-on credentials and local device integrations stay local. Schema and Worker code live in `web/hosting/`.

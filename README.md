@@ -4,7 +4,11 @@ Blynx Music is a native Android player for YouTube Music and local audio, based 
 
 ## Install
 
-Open [GitHub Releases](https://github.com/updaown-hecker/Blynx-Music/releases) while signed in. Choose the ARM64 test APK for the Galaxy S25 FE or the universal APK for other supported processors. Open the file on your phone and permit your browser or file manager to install it if prompted. Published test APKs carry a debug signature and a SHA-256 checksum.
+Open [GitHub Releases](https://github.com/updaown-hecker/Blynx-Music/releases) while signed in. Choose the ARM64 test APK for the Galaxy S25 FE and Galaxy Tab S10 Lite or the universal APK for other supported processors. Open the file on your phone and permit your browser or file manager to install it if prompted. Published test APKs carry a debug signature and a SHA-256 checksum.
+
+On Linux x86-64, use the [Linux release](https://github.com/updaown-hecker/Blynx-Music/releases/tag/v1.1.0-linux) for Debian, RPM, and portable packages. See the [Linux setup guide](docs/blynx-linux.md) or the [Android tablet guide](docs/blynx-tablets.md).
+
+The [web player](https://blynx-music.updaown.chatgpt.site/player/#/home) uses the packaged desktop browser extension for YouTube Music. Its [build and sync notes](web/README.md) describe the web-specific settings.
 
 ## Build
 
@@ -35,4 +39,4 @@ Captured by the Android UI test suite.
 
 The [feature checklist](docs/blynx-feature-audit.md) maps the handset features back to the upstream source. The upstream [service setup](docs/service-integrations.md) documents integrations that need owner-supplied credentials. No service credentials ship in the test build. Private GitHub releases are opened in the signed-in browser from Settings → About → Check for updates. The app has no GitHub token.
 
-The [modification record](docs/blynx-changes.md), [GPLv3 license](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md) accompany this derivative. Upstream companion clients and deployment configuration are retained for source continuity. The release workflow packages the Android handset app.
+The [modification record](docs/blynx-changes.md), [GPLv3 license](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md) accompany this derivative. Upstream companion clients and deployment configuration are retained for source continuity. Separate Android and Linux release workflows build their respective packages.

@@ -1,4 +1,4 @@
-import { ArrowUpRight, ListMusic, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
+import { ArrowUpRight, ListMusic, PanelLeftClose, PanelLeftOpen, Palette, Settings } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { MdOutlineExtension } from 'react-icons/md';
 import { SiSpotify } from 'react-icons/si';
@@ -208,6 +208,10 @@ export function Sidebar() {
           {spotifySignedIn && <SpotifyNav onNavigate={close} />}
         </div>
         <div className="ot-side-bottom flex flex-col gap-2 pt-3 pr-3 pb-5 pl-5">
+          <PrefetchNavLink to="/settings/appearance" className={item} onClick={close} aria-label="Appearance" title={tip('Appearance')}>
+            <span className={icon}><Palette size={18} /></span>
+            <span className={navLabel}>Appearance</span>
+          </PrefetchNavLink>
           <PrefetchNavLink to="/extension" className={`${item} relative`} onClick={close} title={tip('Blynx Music Extension')}>
             {/* Chrome's own toolbar glyph for extensions (Material "extension"). */}
             <span className={icon}>

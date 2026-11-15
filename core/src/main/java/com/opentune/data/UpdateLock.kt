@@ -24,17 +24,13 @@ import okhttp3.Request
  * updated. Two releases behind is still fine; the ordinary update prompt
  * offers those.
  *
- * The releases come from the list the website publishes (pages.yml writes
- * releases.json), which has no rate limit, with GitHub's API as the fallback.
- * What a check found is kept, so the lock holds offline; a check that can't
- * reach either changes nothing, and a phone that has never checked is never
- * locked.
+ * The releases come from this project's GitHub API. If GitHub cannot list them,
+ * the check leaves the stored state alone.
  */
 object UpdateLock {
     /** How many releases the installed version may trail the newest one by. */
     const val MAX_BEHIND = 2
-    private const val SITE_LIST = "https://justshivv.github.io/Opentune/releases.json"
-    private const val API_LIST = "https://api.github.com/repos/justshivv/Opentune/releases?per_page=20"
+    private const val API_LIST = "https://api.github.com/repos/updaown-hecker/Blynx-Music/releases?per_page=20"
     private const val EVERY_MS = 60L * 60 * 1000
     private const val PREFS = "update-lock"
     private const val K_VERSIONS = "versions"
@@ -69,8 +65,7 @@ object UpdateLock {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
         if (!force && now - prefs.getLong(K_CHECKED, 0) < EVERY_MS) return@withContext
-        val list = runCatching { fetch(SITE_LIST) }.getOrNull()
-            ?: runCatching { fetch(API_LIST) }.onFailure { Log.w(TAG, "Couldn't read the releases: ${it.message}") }.getOrNull()
+        val list = runCatching { fetch(API_LIST) }.onFailure { Log.w(TAG, "Couldn't read the releases: ${it.message}") }.getOrNull()
             ?: return@withContext
         val releases = list.mapNotNull { it as? JsonObject }
             .filter { r -> r.bool("draft") != true && r.bool("prerelease") != true }

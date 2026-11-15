@@ -8,14 +8,14 @@ plugins {
 android {
     namespace = "com.opentune"
     // InnerTubeX's AAR is compiled against 37; targetSdk (runtime behaviour) stays 36.
-    compileSdk = 37
+    compileSdkVersion("android-37.0")
 
     defaultConfig {
-        applicationId = "com.opentune"
+        applicationId = "vip.blynx.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 47
-        versionName = "1.1.0"
+        versionCode = 100
+        versionName = "1.0.0"
         // This version's store changelog, shown as What's new when a release
         // goes out before the app's own notes for it are written.
         val changelog = rootProject.file("fastlane/metadata/android/en-US/changelogs/$versionCode.txt")

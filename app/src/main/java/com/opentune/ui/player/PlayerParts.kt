@@ -1343,7 +1343,7 @@ fun MiniPlayer(
         return
     }
 
-    val shape = RoundedCornerShape(22.dp)
+    val shape = MaterialTheme.shapes.large
     if (replica) {
         Box(modifier.background(replicaFace)) { MiniRow(song, isPlaying, isBuffering, hasNext, progress, accent, track, {}, {}, landing) }
         return

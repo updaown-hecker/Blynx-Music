@@ -32,7 +32,8 @@ object Opening {
 }
 
 /** The splash's black, which the system splash screen and the icon use too. */
-val OPENING_FIELD = Color.Black
+val OPENING_FIELD = Color(0xFF42202A)
+private val OPENING_MARK = Color(0xFFFFEEE7)
 
 /**
  * The opening: the mark takes over from the system splash at the same
@@ -77,7 +78,7 @@ fun OpeningReveal(onDive: (Float) -> Unit, onDone: () -> Unit) {
         val rim = Stroke(width = RIM.toPx() / s, join = StrokeJoin.Round)
         translate(center.x - MARK_VIEWPORT / 2f * s, center.y - MARK_VIEWPORT / 2f * s) {
             scale(s, s, pivot = Offset.Zero) {
-                drawPath(mark, Color.White, alpha = 1f - window)
+                drawPath(mark, OPENING_MARK, alpha = 1f - window)
                 // A band of light that runs across the mark once as it settles.
                 if (st in 0.05f..0.98f && d == 0f) {
                     val x = -30f + 170f * st
@@ -108,8 +109,8 @@ private fun smooth(from: Float, to: Float, x: Float): Float {
 
 /** The width of the white edge around the mark. */
 private val RIM = 2.5.dp
-private const val SETTLE_MS = 620
-private const val HOLD_MS = 120L
-private const val DIVE_MS = 900
+private const val SETTLE_MS = 280
+private const val HOLD_MS = 45L
+private const val DIVE_MS = 550
 /** How many times its size the mark grows to by the end of the dive, enough for its band to fill the screen. */
 private const val ZOOM = 90f

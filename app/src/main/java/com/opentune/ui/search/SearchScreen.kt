@@ -190,7 +190,8 @@ fun SearchScreen(
                 .focusRequester(field)
                 .onFocusChanged { focused = it.isFocused },
             singleLine = true,
-            shape = CircleShape,
+            shape = MaterialTheme.shapes.large,
+            textStyle = MaterialTheme.typography.bodyLarge,
             placeholder = { Text(source.placeholder) },
             leadingIcon = {
                 SearchLeadingIcon(explore != null && searching, onBack = leave,
@@ -207,7 +208,7 @@ fun SearchScreen(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { submit(query) }),

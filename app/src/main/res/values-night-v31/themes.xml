@@ -1,6 +1,7 @@
 <resources>
     <style name="Theme.OpenTune" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowSplashScreenBackground">@color/opening_field</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/opening_field</item>
     </style>
 </resources>

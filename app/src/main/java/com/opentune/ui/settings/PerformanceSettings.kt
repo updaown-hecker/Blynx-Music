@@ -74,7 +74,7 @@ internal fun HighPerformanceRows(ui: InterfaceSettings) {
             AppSettings.updateUi { it.copy(highRefreshRate = v) }
             if (v && !unrestricted) { askedThisRun = true; askBattery = true }
         },
-        summary = if (ui.highRefreshRate) com.opentune.i18n.Tr.f("{0} Hz requested. Android may lower it when needed.", chosen) else "Runs the screen at a faster rate while OpenTune is open, for smoother scrolling",
+        summary = if (ui.highRefreshRate) com.opentune.i18n.Tr.f("{0} Hz requested. Android may lower it when needed.", chosen) else "Runs the screen at a faster rate while Blynx Music is open, for smoother scrolling",
         icon = Icons.Rounded.Speed,
     )
     if (ui.highRefreshRate && rates.size > 1) {

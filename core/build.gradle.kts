@@ -33,7 +33,7 @@ android {
             version = "3.22.1"
         }
     }
-    compileSdk = 37
+    compileSdkVersion("android-37.0")
 
     defaultConfig {
         minSdk = 26

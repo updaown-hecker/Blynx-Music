@@ -65,8 +65,8 @@ fun GroupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.()
         modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow),
         content = content,
     )
 }
@@ -111,8 +111,14 @@ fun SettingRow(
                 leading()
                 Box(Modifier.width(26.dp))
             } else if (icon != null) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha), modifier = Modifier.size(26.dp))
-                Box(Modifier.width(26.dp))
+                Box(
+                    Modifier.size(36.dp).clip(RoundedCornerShape(11.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f * alpha)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = alpha), modifier = Modifier.size(20.dp))
+                }
+                Box(Modifier.width(16.dp))
             }
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

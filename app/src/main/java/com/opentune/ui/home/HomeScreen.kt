@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,8 +69,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -371,18 +370,14 @@ fun HomeScreen(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            if (firstName != null) {
-                                Text(com.opentune.ui.theme.tr(greeting), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    firstName,
-                                    style = MaterialTheme.typography.displaySmall,
-                                    maxLines = 2,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(top = 2.dp),
-                                )
-                            } else {
-                                Text(com.opentune.ui.theme.tr(greeting), style = MaterialTheme.typography.displaySmall, maxLines = 2)
-                            }
+                            Text("Blynx Music", style = MaterialTheme.typography.displaySmall, maxLines = 2)
+                            Text(
+                                listOfNotNull(com.opentune.ui.theme.tr(greeting), firstName).joinToString(", "),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            )
                         }
                         if (onRecognize != null) {
                             GlassIconButton(Icons.Rounded.GraphicEq, "Name a song playing nearby", onRecognize, size = 48.dp)
@@ -451,7 +446,7 @@ fun HomeScreen(
                     }
                     id == "community" -> item(key = "featured-playlists") {
                         HomeShelfView(HomeShelf(runtime.title("featured-playlists", "From the community"), runtime.playlists.map {
-                            ShelfItem(it.title, "OpenTune picks", it.artwork, null, it.browseId)
+                            ShelfItem(it.title, "Blynx Music picks", it.artwork, null, it.browseId)
                         }), { item -> com.opentune.data.reco.HomeEngagement.record("community"); onItemClick(item) },
                             songRows = false, covers = covers, coverKey = "featured-playlists", action = {
                             // Closed until a playlist is added that wasn't there now.
@@ -694,79 +689,51 @@ private fun homeOrder(personal: List<com.opentune.data.reco.HomeLayout.Personal>
     }
 }
 
-/**
- * The daylist, big, near the top of Home: its name (what's in it and when) over its own covers
- * mixed together and blurred, the covers themselves beside it, and Play. It changes as the day
- * goes on, so it's given room. Before Android 12, which can't blur, tiny copies of the covers
- * stretched to fill give the same soft wash.
- */
+/** A daylist gives its artwork and title equal weight, with one play target. */
 @Composable
 internal fun DaylistHero(mix: com.opentune.data.history.DailyMixes.Mix, onPlay: () -> Unit) {
-    val covers = mix.covers
-    val shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
-    val blurs = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
-    val white = androidx.compose.ui.graphics.Color.White
-    Box(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp).clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onPlay),
+    val colors = MaterialTheme.colorScheme
+    val shape = MaterialTheme.shapes.extraLarge
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)
+            .clip(shape).background(colors.surfaceContainer)
+            .clickable(onClickLabel = com.opentune.ui.theme.tr("Play"), onClick = onPlay)
+            .padding(18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // The covers, two by two across the whole card, blurred into one wash of their colours. Where
-        // there's no blur (before Android 12) the tiles would meet in hard lines, so one cover's tiny
-        // copy, stretched to fill, makes the wash instead, as the playlist pages do there.
-        if (blurs) {
-            Column(
-                Modifier.matchParentSize()
-                    .graphicsLayer { scaleX = 1.35f; scaleY = 1.35f }
-                    .blur(46.dp, androidx.compose.ui.draw.BlurredEdgeTreatment.Rectangle),
+        Column(Modifier.weight(1f)) {
+            Text("Daylist", style = MaterialTheme.typography.labelLarge, color = colors.primary)
+            Text(
+                mix.title, style = MaterialTheme.typography.headlineSmall,
+                color = colors.onSurface, maxLines = 3,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            Row(
+                Modifier.clip(CircleShape).background(colors.primary)
+                    .padding(start = 9.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                val four = if (covers.isEmpty()) listOf<String?>(null) else List(4) { covers[it % covers.size] }
-                four.chunked(2).forEach { row ->
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        row.forEach { url -> Artwork(url, Modifier.weight(1f).fillMaxHeight(), androidx.compose.ui.graphics.RectangleShape) }
+                Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp), tint = colors.onPrimary)
+                Spacer(Modifier.width(5.dp))
+                Text("Play", style = MaterialTheme.typography.labelLarge, color = colors.onPrimary)
+            }
+        }
+        val covers = mix.covers
+        Box(Modifier.weight(0.7f).aspectRatio(1f).clip(MaterialTheme.shapes.medium)) {
+            if (covers.size >= 4) {
+                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    covers.take(4).chunked(2).forEach { pair ->
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            pair.forEach { url ->
+                                Artwork(url.artworkAt(320), Modifier.weight(1f).fillMaxHeight(), androidx.compose.ui.graphics.RectangleShape)
+                            }
+                        }
                     }
                 }
-            }
-        } else {
-            Artwork(covers.firstOrNull().artworkAt(24), Modifier.matchParentSize().graphicsLayer { scaleX = 1.4f; scaleY = 1.4f },
-                androidx.compose.ui.graphics.RectangleShape)
-        }
-        // Darker on the side the words are, so white reads on any covers.
-        Box(
-            Modifier.matchParentSize().background(
-                androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.62f),
-                    0.65f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.38f),
-                    1f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
-                ),
-            ),
-        )
-        Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("YOUR DAYLIST", style = MaterialTheme.typography.labelMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                    color = white.copy(alpha = 0.75f), letterSpacing = 1.sp)
-                Text(mix.title, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    color = white, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
-                Text(com.opentune.i18n.Tr.f("{0} songs · changes through the day", mix.songs.size), style = MaterialTheme.typography.bodySmall,
-                    color = white.copy(alpha = 0.78f), modifier = Modifier.padding(top = 4.dp))
-                Row(
-                    Modifier.padding(top = 14.dp).clip(CircleShape).background(white).clickable(onClick = onPlay)
-                        .padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Rounded.PlayArrow, null, tint = androidx.compose.ui.graphics.Color.Black, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Play", style = MaterialTheme.typography.labelLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        color = androidx.compose.ui.graphics.Color.Black)
-                }
-            }
-            Spacer(Modifier.width(14.dp))
-            Box(Modifier.size(112.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))) {
-                if (covers.size >= 4) {
-                    Column { for (row in 0..1) Row { for (col in 0..1) Artwork(covers[row * 2 + col], Modifier.size(56.dp), androidx.compose.ui.graphics.RectangleShape) } }
-                } else {
-                    Artwork(covers.firstOrNull(), Modifier.size(112.dp), androidx.compose.ui.graphics.RectangleShape)
-                }
+            } else {
+                Artwork(covers.firstOrNull().artworkAt(480), Modifier.fillMaxSize(), androidx.compose.ui.graphics.RectangleShape)
             }
         }
     }

@@ -684,9 +684,9 @@ private fun TileText(title: String, subtitle: String) {
 private fun Shortcut(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit, modifier: Modifier, logo: Int? = null) {
     Row(
         modifier
-            .height(72.dp)
-            .pressable(onClick, 0.96f)
-            .clip(RoundedCornerShape(20.dp))
+            .height(78.dp)
+            .pressable(onClick, 0.97f)
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -694,8 +694,8 @@ private fun Shortcut(icon: ImageVector, title: String, subtitle: String, onClick
         if (logo != null) {
             // A service's own mark, in its own colours.
             androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(logo), null, Modifier.size(40.dp))
-        } else Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(MaterialTheme.colorScheme.primary), Alignment.Center) {
-            Icon(icon, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onPrimary)
+        } else Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(MaterialTheme.colorScheme.primaryContainer), Alignment.Center) {
+            Icon(icon, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
         }
         Column(Modifier.padding(start = 12.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)

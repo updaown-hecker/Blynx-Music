@@ -146,9 +146,9 @@ data class ThemeSettings(
     /** True black surfaces in dark mode, for OLED screens. */
     val pureBlack: Boolean = true,
     /** Re-seed the whole app from the playing track's artwork. */
-    val colorFromArtwork: Boolean = true,
+    val colorFromArtwork: Boolean = false,
     val playerBackground: PlayerBackground = PlayerBackground.BLUR,
-    val font: AppFont = AppFont.SYSTEM,
+    val font: AppFont = AppFont.OUTFIT,
     val textWeight: TextWeight = TextWeight.MEDIUM,
     /** Private copied file ID, never an external storage path or URI. */
     val customFontId: String = "",
@@ -461,7 +461,7 @@ data class InterfaceSettings(
     /** On the lyrics view, the controls slide away after a few seconds untouched, leaving the lyrics. */
     val lyricsFocus: Boolean = true,
     /** The mini player's glass takes the cover's colour; off keeps it plain. */
-    val miniPlayerTint: Boolean = true,
+    val miniPlayerTint: Boolean = false,
     /** An artist's page is washed with a deep shade of their photo's colour; off keeps the theme's own. */
     val artistPageTint: Boolean = true,
     /** How deep that wash is: a soft wash of the photo's colour, or the deep shade alone. */
@@ -533,11 +533,11 @@ data class InterfaceSettings(
     /** How strong taps and buzzes are, 0 (off) to 1. */
     val hapticStrength: Float = 0.6f,
     /** Look for a new release once a day when the app opens. */
-    val checkForUpdates: Boolean = true,
+    val checkForUpdates: Boolean = false,
     /** Add this phone to the app's anonymous usage counts (see Usage). */
-    val countUsage: Boolean = true,
+    val countUsage: Boolean = false,
     /** How the glass of the dock, buttons and bars looks. */
-    val glassStyle: GlassStyle = GlassStyle.LIQUID,
+    val glassStyle: GlassStyle = GlassStyle.CRYSTAL,
     /** Whether a list of choices in Settings opens as a page of its own or a popup sheet. */
     val choiceMenus: ChoiceMenuStyle = ChoiceMenuStyle.SCREEN,
     /** Pages blur and fade out as they scroll under the status bar. */
@@ -619,7 +619,8 @@ enum class GlassStyle(val label: String, val summary: String) {
     HEAVY("Heavy frost", "Thick, milky glass that hides what's behind it"),
     TINTED("Tinted", "Glass washed with your accent colour"),
     SMOKE("Smoke", "Dark smoked glass with deep contrast"),
-    LIQUID("Liquid", "Apple's Liquid Glass: softly frosted, the edges bend and split the light, with a bright rim (Android 13+)"),
+    CRYSTAL("Clear refraction", "Untinted glass with a clear center and refracting edges (Android 13+)"),
+    LIQUID("Original liquid", "Apple's Liquid Glass: softly frosted, the edges bend and split the light, with a bright rim (Android 13+)"),
 }
 
 /** How strongly an artist's page takes the colour of their photo. */
@@ -853,6 +854,7 @@ data class SettingsState(
 
 /** Accent choices offered when Material You is off. */
 val SEED_COLORS = listOf(
+    0xFF943849.toInt(), // Blynx rose
     0xFFE53935.toInt(), // red
     0xFFFF6F00.toInt(), // amber
     0xFFFDD835.toInt(), // yellow

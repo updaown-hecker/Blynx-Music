@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "OpenTune"
+rootProject.name = "Blynx Music"
 include(":app")
 include(":core")
 include(":wear")

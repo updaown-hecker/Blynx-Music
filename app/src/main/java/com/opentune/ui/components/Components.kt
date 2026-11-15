@@ -469,7 +469,7 @@ private fun ColumnScope.ItemCardBody(
         imageModifier = imageModifier,
         onLoaded = onArtLoaded,
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(10.dp))
     Text(
         title,
         maxLines = 2,
@@ -542,7 +542,7 @@ fun SectionHeader(
     action: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp),
+        modifier = modifier.fillMaxWidth().padding(start = 22.dp, end = 20.dp, top = 24.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {

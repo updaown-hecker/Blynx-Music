@@ -94,7 +94,24 @@ fun OpenTuneTheme(
     } else {
         generated
     }
-    val scheme = if (dark && settings.pureBlack) base.toPureBlack() else base
+    val scheme = when {
+        dark && settings.pureBlack -> base.toPureBlack()
+        useWallpaper || seed != null -> base
+        dark -> base.copy(
+            background = Color(0xFF111112), surface = Color(0xFF111112),
+            surfaceContainerLow = Color(0xFF19191B), surfaceContainer = Color(0xFF202023),
+            surfaceContainerHigh = Color(0xFF28282C), surfaceContainerHighest = Color(0xFF323236),
+            onSurface = Color(0xFFF5F3F1), onBackground = Color(0xFFF5F3F1),
+            onSurfaceVariant = Color(0xFFBCB8B6), outlineVariant = Color(0xFF39383B),
+        )
+        else -> base.copy(
+            background = Color(0xFFFFFDFB), surface = Color(0xFFFFFDFB),
+            surfaceContainerLow = Color(0xFFF8F5F2), surfaceContainer = Color(0xFFF3EFEB),
+            surfaceContainerHigh = Color(0xFFECE8E4), surfaceContainerHighest = Color(0xFFE5E1DD),
+            onSurface = Color(0xFF211F20), onBackground = Color(0xFF211F20),
+            onSurfaceVariant = Color(0xFF686163), outlineVariant = Color(0xFFD7D0CD),
+        )
+    }
 
     MaterialTheme(
         colorScheme = scheme.animated(),
@@ -212,11 +229,11 @@ private fun TextStyle.outfit(weight: FontWeight? = null, spacing: Float? = null)
 val AppTypography = Typography(
     displayLarge = baseType.displayLarge.outfit(FontWeight.Bold, -1.2f),
     displayMedium = baseType.displayMedium.outfit(FontWeight.Bold, -1f),
-    displaySmall = baseType.displaySmall.outfit(FontWeight.Bold, -0.6f),
+    displaySmall = baseType.displaySmall.outfit(FontWeight.Bold, -1.45f).copy(fontSize = 39.sp, lineHeight = 43.sp),
     headlineLarge = baseType.headlineLarge.outfit(FontWeight.Bold, -0.4f),
     headlineMedium = baseType.headlineMedium.outfit(FontWeight.SemiBold, -0.3f),
     headlineSmall = baseType.headlineSmall.outfit(FontWeight.SemiBold, -0.2f),
-    titleLarge = baseType.titleLarge.outfit(FontWeight.SemiBold, -0.1f),
+    titleLarge = baseType.titleLarge.outfit(FontWeight.SemiBold, -0.5f).copy(fontSize = 24.sp, lineHeight = 29.sp),
     titleMedium = baseType.titleMedium.outfit(FontWeight.Medium),
     titleSmall = baseType.titleSmall.outfit(FontWeight.Medium),
     bodyLarge = baseType.bodyLarge.outfit(),
@@ -230,17 +247,17 @@ val AppTypography = Typography(
 /** Large, heavy lyric lines, read at a glance from arm's length. */
 val LyricsTextStyle = TextStyle(
     fontFamily = Outfit,
-    fontSize = 34.sp,
-    lineHeight = 41.sp,
-    fontWeight = FontWeight.ExtraBold,
-    letterSpacing = (-0.6).sp,
+    fontSize = 36.sp,
+    lineHeight = 43.sp,
+    fontWeight = FontWeight.Bold,
+    letterSpacing = (-0.9).sp,
 )
 
 val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(6.dp),
     small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(26.dp),
     extraLarge = RoundedCornerShape(32.dp),
 )
 

@@ -106,8 +106,7 @@ fun backdropBlurOn(): Boolean {
 @Composable
 fun liquidGlassOn(): Boolean {
     val ui by AppSettings.ui.collectAsState()
-    // The Liquid style is Liquid Glass by definition, whatever the switch says.
-    return liquidGlassSupported && (ui.liquidGlass || ui.glassStyle == GlassStyle.LIQUID) && !ui.reduceBlur
+    return liquidGlassSupported && ui.liquidGlass && !ui.reduceBlur
 }
 
 /**
@@ -145,14 +144,39 @@ fun Modifier.glass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surface
         spring(dampingRatio = 0.5f, stiffness = 320f),
         label = "liquidPress",
     )
+    val rimInk = MaterialTheme.colorScheme.onSurface
     val body = if (live) this.liquidTouch(touch, swell) { press } else this
-    if (backdrop != null && liquidGlassOn()) {
+    if (liquid) {
         androidx.compose.runtime.DisposableEffect(Unit) {
             GlassPerformance.glassShowing++
             onDispose { GlassPerformance.glassShowing-- }
         }
     }
-    if (backdrop != null && liquidGlassOn() && ui.glassStyle == GlassStyle.LIQUID) {
+    if (backdrop != null && liquid && ui.glassStyle == GlassStyle.CRYSTAL) {
+        // The flat center samples the scene unchanged. Only the curved rim displaces
+        // it. Keep the foreground outside the effect so labels and icons stay sharp.
+        return body.drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                val rim = lensDepth(11.dp.toPx(), size.minDimension)
+                lens(rim, rim * 0.8f, depthEffect = true, chromaticAberration = false)
+            },
+            highlight = null,
+            shadow = { Shadow.Default },
+            onDrawSurface = { touchLight(touch, press * 0.35f, dark) },
+        ).border(
+            1.dp,
+            Brush.linearGradient(
+                0f to Color.White.copy(alpha = if (dark) 0.58f else 0.86f),
+                0.44f to rimInk.copy(alpha = 0.14f),
+                0.73f to rimInk.copy(alpha = 0.08f),
+                1f to Color.White.copy(alpha = if (dark) 0.4f else 0.72f),
+            ),
+            shape,
+        )
+    }
+    if (backdrop != null && liquid && ui.glassStyle == GlassStyle.LIQUID) {
         // Apple's material: what's behind is softly frosted, so colours read
         // as glowing fields rather than detail; a deep lens at the edges that
         // bends it and splits the light into a colour fringe; vibrancy so the
@@ -203,7 +227,7 @@ fun Modifier.glass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surface
             shape,
         )
     }
-    if (backdrop != null && liquidGlassOn()) {
+    if (backdrop != null && liquid) {
         // A see-through dark (or light) film rather than the theme's grey, so
         // the colour behind comes through. OpenTune's film carries a little of
         // the accent, so the glass reads as part of the theme rather than plain smoke.
@@ -382,12 +406,13 @@ internal fun glassLook(style: GlassStyle): GlassLook = when (style) {
     // Without Liquid Glass (older Android, or blur reduced) it's the clearest frost.
     // Liquid's own blur (the fourth figure) is heavy enough that what's behind
     // reads as soft fields of colour, not detail, as on BitChord and iOS 26.
+    GlassStyle.CRYSTAL -> GlassLook(8.dp, 0.78f, 0f, 0.dp, 0f, 1f)
     GlassStyle.LIQUID -> GlassLook(20.dp, 0.30f, 0f, 18.dp, 0.06f, 2.0f)
 }
 
 /** The colour a [GlassStyle] washes the glass with, from the surface [base] and the [accent]. */
 internal fun styleTint(style: GlassStyle, base: Color, accent: Color, dark: Boolean): Color = when (style) {
-    GlassStyle.FROSTED, GlassStyle.CLEAR, GlassStyle.HEAVY, GlassStyle.LIQUID -> base
+    GlassStyle.FROSTED, GlassStyle.CLEAR, GlassStyle.HEAVY, GlassStyle.LIQUID, GlassStyle.CRYSTAL -> base
     GlassStyle.TINTED -> lerp(base, accent, if (dark) 0.32f else 0.22f)
     // Smoke stays dark in both themes, a little lighter in the light one so it isn't a hole.
     GlassStyle.SMOKE -> if (dark) lerp(base, Color.Black, 0.65f) else lerp(base, Color(0xFF3A3A42), 0.3f)
@@ -463,14 +488,25 @@ fun PageHeader(title: String, onBack: (() -> Unit)? = null, actions: (@Composabl
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (onBack != null) GlassBackButton(onBack) else Box(Modifier.size(56.dp))
-            Box(Modifier.weight(1f))
-            actions?.invoke()
+            if (onBack != null) {
+                GlassBackButton(onBack)
+                Box(Modifier.weight(1f))
+                actions?.invoke()
+            } else {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.displaySmall,
+                    modifier = Modifier.weight(1f).padding(start = 6.dp, end = 12.dp),
+                )
+                actions?.invoke()
+            }
         }
-        Text(
-            title,
-            style = MaterialTheme.typography.displaySmall,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-        )
+        if (onBack != null) {
+            Text(
+                title,
+                style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp, bottom = 12.dp),
+            )
+        }
     }
 }

@@ -384,7 +384,7 @@ fun SettingsScreen(
                 }
                 item {
                     Text(
-                        com.opentune.i18n.Tr.f("OpenTune {0} • GNU GPL v3 • Lyrics from LRCLIB", BuildConfig.VERSION_NAME),
+                        com.opentune.i18n.Tr.f("Blynx Music {0} • GNU GPL v3 • Based on OpenTune", BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(28.dp),
@@ -958,7 +958,7 @@ private fun settingsSections(
                     NavRow(
                         "Background playback",
                         { runCatching { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) } },
-                        summary = if (ignoring) "Unrestricted: music keeps playing with the screen off" else "Restricted: if playback stops in the background, set OpenTune to Unrestricted",
+                        summary = if (ignoring) "Unrestricted: music keeps playing with the screen off" else "Restricted: if playback stops in the background, set Blynx Music to Unrestricted",
                         icon = Icons.Rounded.BatteryChargingFull,
                     )
                 },
@@ -1094,7 +1094,7 @@ private fun settingsSections(
                     )
                 },
                 Entry("Resume when headphones connect", "bluetooth headset wired auto play resume connect car") {
-                    ToggleRow("Resume when headphones connect", pb.resumeOnConnect, { v -> AppSettings.updatePlayback { it.copy(resumeOnConnect = v) } }, summary = "Carries on playing when headphones are plugged in or a Bluetooth device connects, while OpenTune is open or in the notification", icon = com.opentune.ui.player.PlayerIcons.Headphones)
+                    ToggleRow("Resume when headphones connect", pb.resumeOnConnect, { v -> AppSettings.updatePlayback { it.copy(resumeOnConnect = v) } }, summary = "Carries on playing when headphones are plugged in or a Bluetooth device connects, while Blynx Music is open or in the notification", icon = com.opentune.ui.player.PlayerIcons.Headphones)
                 },
                 Entry("Pause at zero volume", "mute volume down silent") {
                     ToggleRow("Pause at zero volume", pb.pauseAtZeroVolume, { v -> AppSettings.updatePlayback { it.copy(pauseAtZeroVolume = v) } }, summary = "Pauses when the volume is turned all the way down and plays again when it comes back up", icon = Icons.AutoMirrored.Rounded.VolumeOff)
@@ -1174,7 +1174,7 @@ private fun settingsSections(
                         value = com.opentune.ui.theme.AppLanguages.selected(context).label)
                 },
                 Entry("App icon", "launcher icon design glass pearl midnight rose ocean") {
-                    NavRow("App icon", { appIconDialog = true }, summary = "Choose the OpenTune icon on your home screen", icon = Icons.Rounded.Palette)
+                    NavRow("App icon", { appIconDialog = true }, summary = "Choose the Blynx Music icon on your home screen", icon = Icons.Rounded.Palette)
                 },
                 Entry("Fonts & readability", "font typeface text weight bold thin ttf otf import custom") {
                     NavRow("Fonts & readability", { fontDialog = true }, summary = "Built-in fonts, text weight and your own font file", icon = Icons.Rounded.TextFields, value = theme.font.label)
@@ -1216,7 +1216,7 @@ private fun settingsSections(
                         "Opening animation",
                         ui.openingAnimation,
                         { v -> AppSettings.updateUi { it.copy(openingAnimation = v) } },
-                        summary = "When OpenTune starts, the screen dives into the logo and the app comes through it",
+                        summary = "When Blynx Music starts, the screen dives into the logo and the app comes through it",
                         icon = Icons.Rounded.AutoAwesome,
                     )
                 },
@@ -1369,7 +1369,7 @@ private fun settingsSections(
                         "Liquid Glass",
                         ui.liquidGlass && liquidGlassSupported,
                         { v -> AppSettings.updateUi { it.copy(liquidGlass = v) } },
-                        summary = if (liquidGlassSupported) "Bends and lifts what's behind the floating bars, like Apple's glass"
+                        summary = if (liquidGlassSupported) "Refracts the backdrop behind floating controls"
                         else "Needs Android 13 or newer; frosted glass is used instead",
                         icon = Icons.Rounded.AutoAwesome,
                         enabled = liquidGlassSupported && !ui.reduceBlur,
@@ -1829,14 +1829,16 @@ private fun settingsSections(
                             when (val r = UpdateCheck.checkNow(context)) {
                                 is UpdateCheck.Result.Newer -> update = r.release
                                 UpdateCheck.Result.UpToDate -> message = com.opentune.i18n.Tr.f("You have the latest version ({0}).", BuildConfig.VERSION_NAME)
-                                UpdateCheck.Result.NoReleases -> message = "No releases are published yet. Builds are on the GitHub branch for now."
+                                UpdateCheck.Result.NoReleases -> runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, UpdateCheck.RELEASES_PAGE.toUri()))
+                                }.onFailure { message = "Open GitHub Releases while signed in to check for Blynx Music updates." }.let { Unit }
                                 is UpdateCheck.Result.Failed -> message = com.opentune.i18n.Tr.f("Couldn't check: {0}", r.reason)
                             }
                         }
-                    }, summary = pendingUpdate?.let { com.opentune.i18n.Tr.f("OpenTune {0} is ready to install. You have {1}.", it.version, BuildConfig.VERSION_NAME) } ?: com.opentune.i18n.Tr.f("Current version: {0}", BuildConfig.VERSION_NAME), icon = Icons.Rounded.SystemUpdate, dot = pendingUpdate != null)
+                    }, summary = pendingUpdate?.let { com.opentune.i18n.Tr.f("Blynx Music {0} is ready to install. You have {1}.", it.version, BuildConfig.VERSION_NAME) } ?: com.opentune.i18n.Tr.f("Current version: {0}", BuildConfig.VERSION_NAME), icon = Icons.Rounded.SystemUpdate, dot = pendingUpdate != null)
                 },
                 Entry("Check for updates automatically", "update new version release auto") {
-                    ToggleRow("Check for updates automatically", ui.checkForUpdates, { v -> AppSettings.updateUi { it.copy(checkForUpdates = v) }; com.opentune.data.UpdateCheck.schedule(context) }, summary = "Looks for a new release on GitHub every few hours, in the background too, and offers to install it", icon = Icons.Rounded.SystemUpdate)
+                    ToggleRow("Check for updates automatically", ui.checkForUpdates, { v -> AppSettings.updateUi { it.copy(checkForUpdates = v) }; com.opentune.data.UpdateCheck.schedule(context) }, summary = "Checks public GitHub releases in the background. For this private project, open Check for updates and sign in to GitHub.", icon = Icons.Rounded.SystemUpdate)
                 },
                 Entry("Count this phone in usage numbers", "anonymous usage statistics analytics counter privacy telemetry") {
                     ToggleRow(
@@ -1858,8 +1860,11 @@ private fun settingsSections(
                 },
                 Entry("Source code", "github open source license gpl") {
                     NavRow("Source code", {
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/updaown-hecker/Blynx-Music".toUri())) }
+                    }, summary = "Blynx Music · GPL v3", icon = Icons.Rounded.Code)
+                    NavRow("OpenTune upstream", {
                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/justshivv/Opentune".toUri())) }
-                    }, summary = "github.com/justshivv/Opentune · GPL v3", icon = Icons.Rounded.Code)
+                    }, summary = "Original project and contributors", icon = Icons.Rounded.Info)
                 },
                 Entry("justshivv", "github developer creator justshivv") {
                     SettingRow(
@@ -1890,7 +1895,7 @@ private fun settingsSections(
                         scope.launch {
                             val log = LogExport.recent()
                             val send = Intent(Intent.ACTION_SEND).setType("text/plain")
-                                .putExtra(Intent.EXTRA_SUBJECT, com.opentune.i18n.Tr.f("OpenTune {0} log", BuildConfig.VERSION_NAME))
+                                .putExtra(Intent.EXTRA_SUBJECT, com.opentune.i18n.Tr.f("Blynx Music {0} log", BuildConfig.VERSION_NAME))
                                 .putExtra(Intent.EXTRA_TEXT, log)
                             context.startActivity(Intent.createChooser(send, "Share log"))
                         }

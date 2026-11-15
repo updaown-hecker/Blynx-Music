@@ -31,10 +31,13 @@ class SettingsDefaultsTest {
             assertEquals(LyricsSource.entries.toList(), settings.lyrics.ordered.map { it.source })
             assertTrue(settings.lyrics.ordered.all { it.enabled })
         }
-        // The iOS 26 look: Liquid Glass and the dock that minimizes.
+        // Clear refraction is the default; the original liquid style remains decodable.
         val ui = json.decodeFromString<SettingsState>("{}").ui
         assertTrue(ui.liquidGlass)
-        assertEquals(com.opentune.data.settings.GlassStyle.LIQUID, ui.glassStyle)
+        assertEquals(com.opentune.data.settings.GlassStyle.CRYSTAL, ui.glassStyle)
+        val original = json.decodeFromString<SettingsState>("""{"ui":{"glassStyle":"LIQUID","liquidGlass":false}}""").ui
+        assertEquals(com.opentune.data.settings.GlassStyle.LIQUID, original.glassStyle)
+        assertFalse(original.liquidGlass)
         assertEquals(com.opentune.data.settings.DockMotion.MINIMIZE, ui.dockMotion)
     }
 

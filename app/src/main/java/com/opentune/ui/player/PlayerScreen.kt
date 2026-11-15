@@ -1562,7 +1562,7 @@ private fun RowScope.TitleRow(song: Song, liked: Boolean, onLike: () -> Unit, on
             style = when {
                 apple -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 compact -> MaterialTheme.typography.titleLarge
-                else -> MaterialTheme.typography.headlineSmall
+                else -> MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
             },
         )
         // Each artist's name opens their own page.

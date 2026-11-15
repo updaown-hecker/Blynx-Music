@@ -39,7 +39,7 @@ internal val MAIN_PAGE_ONLY = setOf("Audio sources")
 /** A short line under a subsection's card, saying what it's for. */
 internal val GROUP_NOTES = mapOf(
     "YouTube Music" to "A Google account can have Personal and Brand profiles. Each has its own library, likes and history.",
-    "Connected services" to "Each one is optional. Spotify brings over your playlists; songs still play through OpenTune's own sources.",
+    "Connected services" to "Each one is optional. Spotify brings over your playlists; songs still play through Blynx Music's own sources.",
 )
 
 /**

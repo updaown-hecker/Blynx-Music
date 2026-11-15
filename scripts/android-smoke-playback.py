@@ -78,7 +78,8 @@ def main() -> None:
     adb("shell", "am", "force-stop", APP)
     # The first launch is checked by the workflow. Start playback QA with a
     # returning-listener fixture, which needs no account or initial permissions.
-    settings = '<map><string name="state_v2">{"ui":{"welcome":"SEEN"}}</string></map>\n'
+    # The library excludes WAV recordings by default. Include the synthetic fixture.
+    settings = '<map><string name="state_v2">{"ui":{"welcome":"SEEN"},"library":{"filterNonMusic":false}}</string></map>\n'
     adb("shell", "run-as", APP, "mkdir", "-p", "shared_prefs")
     subprocess.run(
         ["adb", "shell", f"run-as {APP} sh -c 'cat > shared_prefs/settings.xml'"],

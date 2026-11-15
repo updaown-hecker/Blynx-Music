@@ -79,11 +79,12 @@ internal fun glassLook(style: GlassStyle): GlassLook = when (style) {
     GlassStyle.TINTED -> GlassLook(30.dp, 0.58f, 0.05f)
     GlassStyle.SMOKE -> GlassLook(34.dp, 0.70f, 0.04f)
     GlassStyle.LIQUID -> GlassLook(20.dp, 0.30f, 0f)
+    GlassStyle.CRYSTAL -> GlassLook(8.dp, 0.72f, 0f)
 }
 
 /** The colour a [GlassStyle] washes the glass with, from the surface [base] and the [accent]. */
 internal fun styleTint(style: GlassStyle, base: Color, accent: Color, dark: Boolean): Color = when (style) {
-    GlassStyle.FROSTED, GlassStyle.CLEAR, GlassStyle.HEAVY, GlassStyle.LIQUID -> base
+    GlassStyle.FROSTED, GlassStyle.CLEAR, GlassStyle.HEAVY, GlassStyle.LIQUID, GlassStyle.CRYSTAL -> base
     GlassStyle.TINTED -> lerp(base, accent, if (dark) 0.32f else 0.22f)
     GlassStyle.SMOKE -> if (dark) lerp(base, Color.Black, 0.65f) else lerp(base, Color(0xFF3A3A42), 0.3f)
 }

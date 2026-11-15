@@ -37,3 +37,19 @@ test('sync isolates accounts, strips provider credentials and detects simultaneo
   assert.equal((await (await send('owner-a')).json()).revision, 2);
   assert.equal((await send('owner-a', { secret: 'rejected' }, 2)).status, 400);
 });
+
+test('public invite and pairing routes have canonical addresses', async () => {
+  const origin = 'https://music.blynx.vip';
+  const routes = ['together', 'pair', 'remote', 'devices'];
+  const assets = Object.fromEntries(routes.map((route) => [
+    `/${route}/index.html`, ['text/html', Buffer.from(route).toString('base64')],
+  ]));
+  const app = createWorker(assets);
+  for (const route of routes) {
+    const url = `${origin}/${route}/`;
+    const response = await app.fetch(new Request(url.slice(0, -1)), {});
+    assert.equal(response.status, 308);
+    assert.equal(response.headers.get('location'), url);
+    assert.equal((await app.fetch(new Request(url), {})).status, 200);
+  }
+});

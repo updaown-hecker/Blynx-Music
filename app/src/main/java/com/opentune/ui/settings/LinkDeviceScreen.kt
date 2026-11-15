@@ -75,7 +75,7 @@ import com.opentune.ui.components.SheetButton
 import com.opentune.ui.components.SheetTone
 import com.opentune.ui.components.rememberHaptics
 
-/** The other screens OpenTune can reach from this one. */
+/** The other screens Blynx Music can reach from this one. */
 internal enum class LinkTarget(val label: String, val icon: ImageVector) {
     TV("TV", Icons.Rounded.Tv),
     COMPUTER("Computer", Icons.Rounded.Laptop),
@@ -103,13 +103,13 @@ fun LinkDeviceScreen(
     var casting by remember { mutableStateOf(false) }
     var scanning by remember { mutableStateOf(false) }
     // The TV's code read here goes the same way as one scanned with the phone's camera app:
-    // a sign-in code asks to approve, any other OpenTune link opens.
+    // a sign-in code asks to approve, any other Blynx Music link opens.
     if (scanning) com.opentune.ui.account.QrScannerDialog(onDismiss = { scanning = false }) { text ->
         scanning = false
         val view = Intent(Intent.ACTION_VIEW, text.toUri())
         if (!com.opentune.ui.account.PairingLinks.receive(view)) {
-            if (com.opentune.ui.Links.parse(text) != null || text.startsWith("opentune://")) com.opentune.ui.Links.receive(view)
-            else Pills.error("That isn't an OpenTune code", context)
+            if (com.opentune.ui.Links.parse(text) != null || (text.startsWith("opentune://") || com.opentune.data.together.RoomCode.find(text) != null)) com.opentune.ui.Links.receive(view)
+            else Pills.error("That isn't an Blynx Music code", context)
         }
     }
     val signedIn by AccountStore.signedIn.collectAsState()
@@ -133,7 +133,7 @@ fun LinkDeviceScreen(
         item { PageHeader("Link a device", onBack = onBack) }
         item {
             Text(
-                "Sign in your TV, open OpenTune on a computer, play on a speaker or listen with a friend.",
+                "Sign in your TV, open Blynx Music on a computer, play on a speaker or listen with a friend.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
@@ -155,7 +155,7 @@ fun LinkDeviceScreen(
                         LinkTarget.TV -> TvSteps(signedIn, onSignIn, ::camera, ::open, ::share, onRemote)
                         LinkTarget.COMPUTER -> DeviceCard(
                             "In your browser",
-                            "Browse, search and listen on a computer. Your library there stays in that browser.",
+                            "Browse, search and listen on a computer, or install Blynx Music on Linux.",
                         ) {
                             Step(1, "Open the web player", "On the computer, go to the address below, or send it there from this phone.") {
                                 Text(
@@ -173,14 +173,14 @@ fun LinkDeviceScreen(
                                 )
                             }
                             Step(2, "Add the companion extension", "It lets the page reach YouTube Music from your own browser. Choose Get the Extension in the web player.", last = true)
-                            Note(Icons.Rounded.Lock, "A preview. What you save there stays in that browser; it doesn't sync with this phone.")
+                            Note(Icons.Rounded.Lock, "Web sync is available in the web player’s settings. This phone keeps its own local library.")
                         }
                         LinkTarget.SPEAKER -> DeviceCard(
                             "On a speaker or smart TV",
                             "Send what's playing to a Chromecast, a Google speaker or a TV that plays over the network.",
                         ) {
                             Step(1, "Join the same Wi-Fi", "The speaker or TV and this phone need to be on the same network.")
-                            Step(2, "Pick it from the list", "OpenTune looks for devices nearby. The phone stays the remote.", last = true) {
+                            Step(2, "Pick it from the list", "Blynx Music looks for devices nearby. The phone stays the remote.", last = true) {
                                 Buttons({ SheetButton("Find devices", onClick = { casting = true }, icon = Icons.Rounded.Cast, tone = SheetTone.Primary) })
                             }
                         }
@@ -189,7 +189,7 @@ fun LinkDeviceScreen(
                             "Listen to the same song at the same moment on two phones, wherever each of you is, and chat or talk as it plays.",
                         ) {
                             Step(1, "Start a room", "You get a code and a link to send.")
-                            Step(2, "Your friend joins", "They open the link, or type the code in OpenTune.", last = true) {
+                            Step(2, "Your friend joins", "They open the link, or type the code in Blynx Music.", last = true) {
                                 Buttons({ SheetButton("Listen together", onClick = onTogether, icon = Icons.Rounded.Groups, tone = SheetTone.Primary) })
                             }
                         }
@@ -219,18 +219,18 @@ private fun TvSteps(
     share: (String) -> Unit,
     onRemote: () -> Unit,
 ) {
-    DeviceCard("Remote control", "Use this phone as a trackpad and remote for OpenTune on the TV: a cursor you steer with a finger, or a pad of buttons.", compact = true) {
+    DeviceCard("Remote control", "Use this phone as a trackpad and remote for Blynx Music on the TV: a cursor you steer with a finger, or a pad of buttons.", compact = true) {
         Buttons({ SheetButton("Control the TV", onClick = onRemote, icon = Icons.Rounded.Tv, tone = SheetTone.Primary) })
     }
     DeviceCard("Android TV", "Sign the TV in with this phone's YouTube Music account. No typing with the remote.") {
-        Step(1, "Install OpenTune for TV", "A separate app made for the remote. Get OpenTune-TV from the latest release.") {
+        Step(1, "Install the Android TV companion", "Use the device guide to find the compatible TV app.") {
             Buttons(
-                { SheetButton("Get the app", onClick = { open(RELEASES) }, icon = Icons.Rounded.Download) },
-                { SheetButton("Share", onClick = { share(RELEASES) }, icon = Icons.Rounded.Share) },
+                { SheetButton("Get the app", onClick = { open(DEVICES) }, icon = Icons.Rounded.Download) },
+                { SheetButton("Share", onClick = { share(DEVICES) }, icon = Icons.Rounded.Share) },
             )
         }
         Step(2, "Show the code on the TV", "On the TV, open Settings, then Account, and choose Sign in.")
-        Step(3, "Scan it with this phone", "Scan it right here in OpenTune, or with the phone's own camera app, then approve on this phone.", last = true) {
+        Step(3, "Scan it with this phone", "Scan it right here in Blynx Music, or with the phone's own camera app, then approve on this phone.", last = true) {
             if (signedIn) {
                 Buttons({ SheetButton("Open the camera", onClick = camera, icon = Icons.Rounded.CameraAlt, tone = SheetTone.Primary) })
             } else {
@@ -242,7 +242,7 @@ private fun TvSteps(
                 Buttons({ SheetButton("Sign in", onClick = onSignIn, tone = SheetTone.Primary) })
             }
         }
-        Buttons({ SheetButton("TV information", onClick = { open(com.opentune.data.config.RemoteConfig.current.tv) }, icon = Icons.AutoMirrored.Rounded.OpenInNew) })
+        Buttons({ SheetButton("TV information", onClick = { open(DEVICES) }, icon = Icons.AutoMirrored.Rounded.OpenInNew) })
         Note(Icons.Rounded.Lock, "Both on the same Wi-Fi. The code lasts two minutes, and the session goes straight to the TV, encrypted. Each keeps its own library.")
     }
 }
@@ -353,6 +353,6 @@ private fun Note(icon: ImageVector, text: String) {
     }
 }
 
-private val WEB_PLAYER get() = com.opentune.data.config.RemoteConfig.current.web
-private const val RELEASES = "https://github.com/justshivv/Opentune/releases/latest"
-private const val SOURCE = "https://github.com/justshivv/Opentune/tree/main/wear"
+private const val WEB_PLAYER = "https://music.blynx.vip/player/#/home"
+private const val DEVICES = "https://music.blynx.vip/devices/#tv"
+private const val SOURCE = "https://github.com/updaown-hecker/Blynx-Music/tree/main/wear"

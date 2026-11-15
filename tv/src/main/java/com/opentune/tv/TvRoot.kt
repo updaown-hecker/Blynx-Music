@@ -198,7 +198,7 @@ private fun TopBar(nav: TvNav, current: Dest, player: TvPlayer) {
         Modifier.fillMaxWidth().padding(horizontal = TvSafe.Horizontal, vertical = TvSafe.Vertical),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("OpenTune", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(end = 28.dp))
+        Text("Blynx Music", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(end = 28.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Tabs.forEach { tab ->
                 TvPill(

@@ -1,6 +1,9 @@
 name: Android test release
 
 on:
+  push:
+    branches: [main]
+    paths: ['app/build.gradle.kts']
   workflow_dispatch:
 
 permissions:
@@ -27,8 +30,12 @@ jobs:
         with:
           packages: platform-tools platforms;android-37.0 build-tools;35.0.0 ndk;27.2.12479018 cmake;3.22.1
       - uses: gradle/actions/setup-gradle@v4
+      - name: Test room links and device pairing
+        run: >-
+          ./gradlew :core:testDebugUnitTest
+          --tests '*RoomInviteTest' --tests '*PairingCryptoTest' --tests '*RemoteLinkTest'
       - name: Build test-signed APKs
-        run: ./gradlew :app:assembleDebug
+        run: ./gradlew :app:assembleDebug :tv:assembleDebug
       - name: Verify and checksum APKs
         id: apks
         shell: bash
@@ -43,6 +50,10 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$apk"
             "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | sed -n '1p'
           done
+          tv="release/Blynx-Music-v$version-android-tv.apk"
+          cp tv/build/outputs/apk/debug/tv-debug.apk "$tv"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$tv"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$tv" | sed -n '1p'
           cd release
           sha256sum ./*.apk | sed 's/  \.\//  /' > SHA256SUMS.txt
           sha256sum -c SHA256SUMS.txt

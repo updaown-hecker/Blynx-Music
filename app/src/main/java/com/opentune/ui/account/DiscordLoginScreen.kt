@@ -488,7 +488,7 @@ private fun CaptchaView(asked: DiscordLogin.Step.Captcha, modifier: Modifier, on
                 addJavascriptInterface(object {
                     @android.webkit.JavascriptInterface fun solved(key: String) { main.post { onSolved(key) } }
                     @android.webkit.JavascriptInterface fun failed(why: String) { main.post { onFailed(why) } }
-                }, "OpenTune")
+                }, "Blynx Music")
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest): Boolean {
                         // The puzzle's own frames load as they like; a link it opens in the page (its terms) goes outside.

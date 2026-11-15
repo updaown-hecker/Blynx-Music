@@ -78,7 +78,10 @@ export function createWorker(files) {
         catch { return json({ error: 'Sync temporarily unavailable' }, 503); }
       }
       if (request.method !== 'GET' && request.method !== 'HEAD') return new Response(null, { status: 405 });
-      if (url.pathname === '/player') return Response.redirect(new URL('/player/', url), 308);
+      if (['/player', '/together', '/pair', '/remote', '/devices'].includes(url.pathname)) {
+        url.pathname += '/';
+        return Response.redirect(url, 308);
+      }
       let path;
       try { path = decodeURIComponent(url.pathname); } catch { return new Response(null, { status: 400 }); }
       if (path.endsWith('/')) path += 'index.html';

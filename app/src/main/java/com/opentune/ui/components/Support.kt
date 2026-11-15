@@ -95,10 +95,10 @@ fun SupportDialog(onDismiss: () -> Unit) {
     FloatingDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Favorite, null) },
-        title = { Text("Support OpenTune") },
+        title = { Text("Project support") },
         text = {
             Column {
-                Text("OpenTune has no ads and nothing to sell. If it has added a little something to your days, a small thank-you helps keep it going, and every one is truly appreciated.")
+                Text("This optional contribution goes to the original open-source maintainers.")
                 Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Support.AMOUNTS.forEach { a ->
                         FilterChip(selected = text == a.toString(), onClick = { text = a.toString() }, label = { Text("₹$a") })
@@ -131,7 +131,7 @@ fun SupportDialog(onDismiss: () -> Unit) {
     )
 }
 
-/** A dismissible monthly invitation to star the upstream project. */
+/** A dismissible monthly invitation to star the Blynx Music project. */
 @Composable
 fun StarInviteCard(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -139,13 +139,13 @@ fun StarInviteCard(onDismiss: () -> Unit) {
     FloatingDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Star, null) },
-        title = { Text("Support OpenTune") },
+        title = { Text("Project support") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Star the original open-source project on GitHub.")
+                Text("Star Blynx Music on GitHub.")
                 androidx.compose.material3.FilledTonalButton(
                     onClick = {
-                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Support.REPO.toUri())) }
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/updaown-hecker/Blynx-Music".toUri())) }
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth(),

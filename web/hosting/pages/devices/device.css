@@ -1,0 +1,9 @@
+:root{color-scheme:dark;font:16px/1.55 system-ui,sans-serif;background:#100d13;color:#fbf8fc}
+*{box-sizing:border-box}body{margin:0;padding:clamp(20px,6vw,76px);background:radial-gradient(ellipse at 25% 0%,#291d30,transparent 62%);min-height:100svh}
+main{max-width:630px;margin:0 auto}a{color:#e9b8fa}a:focus-visible{outline:2px solid #f0d8ff;outline-offset:4px}
+.brand{display:inline-flex;align-items:center;gap:10px;margin-bottom:32px;color:inherit;font-size:17px;font-weight:700;text-decoration:none}
+.card{background:#1a151e;border:1px solid #4d3d54;border-radius:30px;padding:clamp(24px,6vw,46px);box-shadow:0 18px 80px #0005}
+h1{font-size:clamp(32px,7vw,52px);line-height:1.05;letter-spacing:-.04em;margin:0 0 14px}
+h2{font-size:20px;letter-spacing:-.025em;margin:24px 0 4px}p{color:#cec2d1;margin:0 0 18px}
+.action{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border-radius:999px;padding:8px 19px;background:#e9b8fa;color:#28162f;font-weight:700;text-decoration:none}
+.action.secondary{background:#37293e;color:#fbf8fc}nav{display:flex;flex-wrap:wrap;gap:10px}code{display:block;margin:8px 0 24px;font-size:clamp(18px,5vw,27px);letter-spacing:.07em}[hidden]{display:none!important}

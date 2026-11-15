@@ -7,7 +7,10 @@ import org.junit.Test
 class RoomInviteTest {
     private val code = RoomCode.parse("K7QX-M2PA-9DTE")!!
     @Test fun newWebAndOldAppLinksBothOpenTheSameRoom() {
+        assertEquals("https://music.blynx.vip/together/#code=${code.raw}", code.link)
         assertEquals(code, RoomCode.parse(code.link))
+        assertEquals(code, RoomCode.parse("https://justshivv.github.io/Opentune/together/#code=${code.raw}"))
+        assertEquals(code, RoomCode.parse("opentune://together/${code.raw}"))
         assertEquals(code, RoomCode.find("Listen with me\n${code.link}"))
         assertEquals(code, RoomCode.parse(code.appLink))
         assertEquals(code, RoomCode.find("Listen with me\n${code.appLink}"))

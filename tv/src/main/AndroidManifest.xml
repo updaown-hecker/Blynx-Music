@@ -16,7 +16,7 @@
 
     <application
         android:name=".TvApp"
-        android:label="OpenTune"
+        android:label="Blynx Music"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/tv_banner"
         android:allowBackup="false"

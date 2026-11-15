@@ -121,7 +121,7 @@ object ShareCard {
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/OpenTune")
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Blynx Music")
             values.put(MediaStore.Images.Media.IS_PENDING, 1)
             val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             val uri = resolver.insert(collection, values) ?: error("Couldn't add the picture")

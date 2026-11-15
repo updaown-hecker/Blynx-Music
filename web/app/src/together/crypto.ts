@@ -14,6 +14,8 @@ const ITERATIONS = 40_000;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
+export const roomLink = (code: string) => `https://music.blynx.vip/together/#code=${code}`;
+
 export const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 export function fromHex(s: string): Uint8Array {
   const out = new Uint8Array(s.length / 2);
@@ -65,7 +67,7 @@ export class RoomCode {
   }
   /** The website's invite page, which opens the room in the app or here. */
   get link(): string {
-    return `https://justshivv.github.io/Opentune/together/#code=${this.raw}`;
+    return roomLink(this.raw);
   }
 
   seal(plain: string) {
@@ -96,7 +98,7 @@ export class RoomCode {
   static parse(text: string | null | undefined): string | null {
     if (!text) return null;
     let value = text.trim();
-    const link = value.match(/^(?:https:\/\/justshivv\.github\.io\/Opentune\/together\/?#code=|opentune:\/\/together\/)([A-Za-z0-9-]+)/i);
+    const link = value.match(/^(?:https:\/\/(?:music\.blynx\.vip|justshivv\.github\.io\/Opentune)\/together\/?#code=|(?:blynxmusic|opentune):\/\/together\/)([A-Za-z0-9-]+)$/i);
     if (link) value = link[1]!;
     else if (/^[a-z]+:\/\//i.test(value)) return null;
     if (!/^[A-Za-z0-9\s-]+$/.test(value)) return null;

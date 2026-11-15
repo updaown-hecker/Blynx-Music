@@ -18,7 +18,7 @@ android {
     compileSdkVersion("android-37.0")
 
     defaultConfig {
-        applicationId = "com.opentune.tv"
+        applicationId = "vip.blynx.music.tv"
         // Android 8.0, the same floor as :core.
         minSdk = 26
         targetSdk = 36

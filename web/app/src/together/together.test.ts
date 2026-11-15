@@ -18,10 +18,14 @@ describe('room code, as the Android app makes it', () => {
     expect(await (await RoomCode.of('23456789ABCD')).open(sealedByReference)).toBeNull();
   });
 
-  it('reads a code in any form people paste it', () => {
+  it('reads a code in any form people paste it', async () => {
     expect(RoomCode.parse('k7qx m2pa-9dte')).toBe(raw);
     expect(RoomCode.parse(`https://justshivv.github.io/Opentune/together/#code=${raw}`)).toBe(raw);
     expect(RoomCode.parse(`opentune://together/${raw}`)).toBe(raw);
+    expect(RoomCode.parse(`blynxmusic://together/${raw}`)).toBe(raw);
+    expect(RoomCode.parse(`https://music.blynx.vip/together/#code=${raw}`)).toBe(raw);
+    expect(RoomCode.parse(`https://music.blynx.vip.evil.test/together/#code=${raw}`)).toBeNull();
+    expect((await RoomCode.of(raw)).link).toBe(`https://music.blynx.vip/together/#code=${raw}`);
     expect(RoomCode.parse('K7QX-M2PA-9DT0')).toBeNull(); // 0 isn't in the alphabet
     expect(RoomCode.parse('https://example.com/K7QXM2PA9DTE')).toBeNull();
     expect(RoomCode.parse(RoomCode.generate())).toHaveLength(12);

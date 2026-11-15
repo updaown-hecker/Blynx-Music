@@ -557,7 +557,7 @@ private fun settingsSections(
             message = runCatching {
                 val doc = withContext(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)?.use { AppSettings.json.parseToJsonElement(it.readBytes().decodeToString()) }
-                } as? JsonObject ?: error("not an OpenTune export")
+                } as? JsonObject ?: error("Invalid app settings export")
                 doc["settings"]?.let(AppSettings::importJson)
                 doc["history"]?.let(History::importJson)
                 doc["library"]?.let(LibraryStore::importJson)
@@ -1601,14 +1601,14 @@ private fun settingsSections(
                                 val (copied, skipped) = com.opentune.data.download.Downloads.exportExisting(context.applicationContext)
                                 val note = buildString {
                                     append(if (copied == 1) "1 song" else com.opentune.i18n.Tr.f("{0} songs", copied))
-                                    append(" copied to Music/OpenTune")
+                                    append(" copied to Music/Blynx Music")
                                     if (skipped > 0) append(com.opentune.i18n.Tr.f("; {0} in a format other apps can't play, download them again to export", skipped))
                                 }
                                 if (copied > 0 || skipped > 0) com.opentune.data.Pills.done(note, context)
                             }
                         },
                         summary = if (com.opentune.data.download.DownloadExport.supported)
-                            "Also saves each download to Music/OpenTune as AAC (M4A) or FLAC, so other music apps can play it"
+                            "Also saves each download to Music/Blynx Music as AAC (M4A) or FLAC, so other music apps can play it"
                         else "Needs Android 10 or newer",
                         icon = Icons.Rounded.DownloadDone,
                         enabled = com.opentune.data.download.DownloadExport.supported,
@@ -1849,13 +1849,13 @@ private fun settingsSections(
                         icon = Icons.Rounded.Info,
                     )
                 },
-                Entry("Support OpenTune", "donate upi pay money tip support developer") {
-                    NavRow("Support OpenTune", { supportDialog = true }, summary = "A small thank-you helps keep OpenTune going", icon = Icons.Rounded.Favorite)
+                Entry("Project support", "donate upi pay money tip support developer") {
+                    NavRow("Project support", { supportDialog = true }, summary = "Optional contribution to the original maintainers", icon = Icons.Rounded.Favorite)
                 },
                 Entry("Star on GitHub", "star github rate like") {
                     NavRow("Star on GitHub", {
-                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, com.opentune.ui.components.Support.REPO.toUri())) }
-                    }, summary = "Helps other people find OpenTune", icon = Icons.Rounded.Star)
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/updaown-hecker/Blynx-Music".toUri())) }
+                    }, summary = "Helps other people find Blynx Music", icon = Icons.Rounded.Star)
                 },
                 Entry("Source code", "github open source license gpl") {
                     NavRow("Source code", {

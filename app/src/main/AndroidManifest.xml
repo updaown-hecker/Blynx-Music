@@ -105,6 +105,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="opentune" android:host="pair" />
+                <data android:scheme="blynxmusic" android:host="pair" />
             </intent-filter>
             <intent-filter tools:ignore="AppLinkWarning">
                 <action android:name="android.intent.action.VIEW" />
@@ -118,6 +119,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="opentune" android:host="together" />
+                <data android:scheme="blynxmusic" android:host="together" />
             </intent-filter>
             <!-- GitHub Pages cannot publish assetlinks.json at the domain root;
                  browsers use the invite landing page when Android has no default handler. -->
@@ -127,7 +129,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="justshivv.github.io" android:pathPrefix="/Opentune/together/" />
             </intent-filter>
-            <!-- "Play … on OpenTune" from the Assistant. -->
+            <intent-filter tools:ignore="AppLinkWarning">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="music.blynx.vip" />
+                <data android:path="/pair" />
+                <data android:path="/pair/" />
+                <data android:path="/together" />
+                <data android:path="/together/" />
+            </intent-filter>
+            <!-- "Play … on Blynx Music" from the Assistant. -->
             <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />

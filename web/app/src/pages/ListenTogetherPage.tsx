@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
 import { approve, createRoom, dismissEnded, joinRoom, leaveRoom, parseCode, reject, removeMember, savedName, say, setAskToJoin, setOpen, useRoom } from '@/together/room';
+import { roomLink } from '@/together/crypto';
 import type { RoomView } from '@/together/session';
 import { usePlayer } from '@/state/player';
 import { Toggle } from './IntegrationSettings';
@@ -36,7 +37,7 @@ export default function ListenTogetherPage() {
     <div className={settingsUi.centered}>
       <PageHeader title="Listen Together" back={{ to: '/settings', label: 'Settings' }} />
       <div className={settingsUi.body}>
-        {view ? <Room view={view} /> : <StartOrJoin invite={invite} />}
+        {view ? <Room view={view} /> : <StartOrJoin key={invite ?? 'settings'} invite={invite} />}
       </div>
     </div>
   );
@@ -87,7 +88,7 @@ function Room({ view }: { view: RoomView }) {
   const autoplay = usePlayer((s) => s.autoplay);
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
   const copy = (what: 'code' | 'link') => {
-    const text = what === 'code' ? pretty(view.code) : `https://justshivv.github.io/Opentune/together/#code=${view.code}`;
+    const text = what === 'code' ? pretty(view.code) : roomLink(view.code);
     void navigator.clipboard.writeText(text).then(() => { setCopied(what); setTimeout(() => setCopied(null), 1500); }, () => undefined);
   };
   const ended = view.phase === 'ended';

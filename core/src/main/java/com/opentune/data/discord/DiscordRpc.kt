@@ -66,8 +66,8 @@ object DiscordRpc {
 
     private const val GATEWAY = "wss://gateway.discord.gg/?v=10&encoding=json"
     private const val API = "https://discord.com/api/v10"
-    private const val PROJECT_URL = "https://github.com/justshivv/Opentune"
-    private const val APP_NAME = "OpenTune"
+    private const val PROJECT_URL = "https://music.blynx.vip/"
+    private const val APP_NAME = "Blynx Music"
     private const val LABEL_MAX = 32
     private const val TEXT_MAX = 128
     private const val MIN_RETRY_MS = 1_000L
@@ -241,7 +241,7 @@ object DiscordRpc {
         }
         if (com.opentune.data.isYouTubeId(now.videoId)) {
             activity.put("details_url", watch)
-            activity.put("buttons", JSONArray().put(fit("Listen on YouTube Music", LABEL_MAX)).put(fit("Get OpenTune", LABEL_MAX)))
+            activity.put("buttons", JSONArray().put(fit("Listen on YouTube Music", LABEL_MAX)).put(fit("Get Blynx Music", LABEL_MAX)))
             activity.put("metadata", JSONObject().put("button_urls", JSONArray().put(watch).put(PROJECT_URL)))
         }
         applicationId.takeIf { it.isNotEmpty() }?.let { activity.put("application_id", it) }

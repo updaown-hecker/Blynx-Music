@@ -7,7 +7,6 @@ import { PageHeader } from '@/components/PageHeader';
 import { PrefetchLink } from '@/components/PrefetchLink';
 import { LogoMark } from '@/components/icons/LogoMark';
 import { config } from '@/config';
-import { useRemoteConfig } from '@/config/remote';
 import { useAddons } from '@/addons/client';
 import { useDiscord } from '@/extension/useDiscord';
 import { useExtension } from '@/extension/useExtension';
@@ -186,7 +185,6 @@ function ExtensionCard() {
  * lives. One page, grouped rows, a list of the sections beside it.
  */
 export default function SettingsPage() {
-  const links = useRemoteConfig((s) => s.config.data.links);
   const extension = useExtension();
   const yt = useYtAuth();
   const discord = useDiscord();
@@ -339,9 +337,9 @@ export default function SettingsPage() {
           <Section id="about" title="About">
             <section className={settingsUi.group}>
               <ExternalRow href={config.androidAppUrl} icon={<Glyph Icon={Smartphone} color="#2fa84f" />} title="Blynx Music for Android" value="Download" />
-              <ExternalRow href={links.tv} icon={<Glyph Icon={Tv} color="#3478f6" />} title="Original OpenTune for TV" />
-              <ExternalRow href="https://justshivv.github.io/Opentune/addons/" icon={<Glyph Icon={Wrench} color="#e5483a" />} title="Build an add-on" />
-              <ExternalRow href={links.github} icon={<Glyph Icon={SiGithub} color="#24292f" />} title="Source code" value="GitHub" />
+              <ExternalRow href="https://music.blynx.vip/devices/#tv" icon={<Glyph Icon={Tv} color="#3478f6" />} title="Link a device" />
+              <ExternalRow href="https://github.com/updaown-hecker/Blynx-Music/blob/main/docs/audio-addons.md" icon={<Glyph Icon={Wrench} color="#e5483a" />} title="Build an add-on" />
+              <ExternalRow href="https://github.com/updaown-hecker/Blynx-Music" icon={<Glyph Icon={SiGithub} color="#24292f" />} title="Source code" value="GitHub" />
             </section>
             <p className={settingsUi.footer}>Blynx Music is based on OpenTune and licensed under GPL-3.0. Report bugs, suggest features and share the add-ons you build.</p>
           </Section>

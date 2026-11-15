@@ -1,6 +1,6 @@
 # Android feature audit
 
-Baseline OpenTune commit `07acdf9299c0c70c9e8042ae8eceac025810cf24`. These are source-level mappings. Device checks require an installed build.
+Baseline OpenTune commit `07acdf9299c0c70c9e8042ae8eceac025810cf24`. The implementation column records source-level feature parity. The device checks are a manual test plan. Executed checks are recorded below.
 
 | Area | Upstream implementation carried into Blynx Music | Device check |
 | --- | --- | --- |
@@ -25,6 +25,7 @@ The new application ID gives the handset build its own storage. Upstream JSON ex
 
 - GitHub Actions built the APKs, verified their debug signatures and checksums, and published a private prerelease.
 - Local APK inspection confirmed package `vip.blynx.music`, minimum API 26, target API 36, the launcher alias, and the foreground media service. The ARM64 native libraries in both packages use 16 KiB alignment.
-- The core JVM suite passed 750 tests, with one skipped. The first full app CI run passed 352 tests, with 14 skipped and two assertions still expecting the upstream branding. Both assertions were updated. The subsequent focused offline run passed all 24 selected tests.
-- Android lint passed in GitHub Actions. The local SDK installation reported 12 findings related to component type resolution, the existing dynamic-color SDK guard, and an existing restricted Navigation API call.
-- The local Android 15 emulator accepted the x86_64 debug APK. A workspace reset interrupted the launch check. The Android device smoke test installs the published universal APK and checks the launcher activity on Android 15.
+- The core JVM suite passed 750 tests, with one skipped. The first full app CI run passed 352 tests, with 14 skipped and two assertions still expecting the upstream branding. Both assertions were updated. The focused offline run passed all 24 selected tests. The [corrected GitHub Actions run](https://github.com/updaown-hecker/Blynx-Music/actions/runs/43734801913) passed Gradle compilation, packaging, and the full JVM test step.
+- Android lint passed in the initial GitHub Actions verification. The local SDK installation reported 12 findings related to component type resolution, the existing dynamic-color SDK guard, and an existing restricted Navigation API call.
+- A [GitHub-hosted Android 15 emulator](https://github.com/updaown-hecker/Blynx-Music/actions/runs/43735666362) verified the published universal APK's SHA-256, installed it, and launched the Classic launcher into the Blynx splash and onboarding with the network disabled. The extended playback check stopped during onboarding on that run.
+- Physical Galaxy S25 FE behavior, authenticated streaming, Bluetooth, and rendering performance were not verified.

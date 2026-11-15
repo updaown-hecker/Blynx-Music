@@ -25,6 +25,12 @@ APKs are under `app/build/outputs/apk/debug/`. The phone app targets API 36 and 
 
 Light, dark and system modes are available alongside OLED black, Material You wallpaper colors and optional coloring from artwork. Edit `Theme.kt` for surface colors, typography and shape tokens and `Glass.kt` for lens parameters and rim lighting. The launcher assets and in-app mark share a 108-unit viewport in `app/src/main/res/drawable/` and `LogoMark.kt`.
 
+## Screenshot
+
+<img src="docs/blynx/settings-dark.png" width="320" alt="Blynx Music settings in dark mode">
+
+Captured by the Android UI test suite.
+
 ## Source and integrations
 
 The [feature checklist](docs/blynx-feature-audit.md) maps the handset features back to the upstream source. The upstream [service setup](docs/service-integrations.md) documents integrations that need owner-supplied credentials. No service credentials ship in the test build. Private GitHub releases are opened in the signed-in browser from Settings → About → Check for updates. The app has no GitHub token.

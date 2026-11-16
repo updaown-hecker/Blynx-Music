@@ -11,6 +11,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ internal fun SignInPage(
     logo: Int? = null,
     extra: (@Composable (closeHelp: () -> Unit) -> Unit)? = null,
     privacy: String? = null,
+    alternateSignIn: (() -> Unit)? = null,
     web: @Composable (Modifier) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -64,6 +66,11 @@ internal fun SignInPage(
                     style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 IconButton(onClick = { showHelp = true }) { Icon(Icons.Rounded.Info, "Sign-in help") }
+            }
+            if (alternateSignIn != null) {
+                TextButton(onClick = alternateSignIn, modifier = Modifier.align(Alignment.End).padding(horizontal = 8.dp)) {
+                    Text("Sign in with email and password")
+                }
             }
             Box(Modifier.weight(1f).fillMaxWidth().testTag("sign-in-browser")) {
                 if (unavailable == null) web(Modifier.fillMaxSize())

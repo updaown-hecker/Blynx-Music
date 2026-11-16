@@ -1,0 +1,2 @@
+Continue with Google opens the Google account chooser for YouTube Music.
+Email-and-password sign-in remains available from the same screen.

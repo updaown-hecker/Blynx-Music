@@ -37,12 +37,13 @@ class LinkDeviceScreenTest {
                 Surface { LinkDeviceScreen(PaddingValues(), onBack = { }, onSignIn = { }, onTogether = { }) }
             }
         }
-        compose.onNodeWithText("Install OpenTune for TV").assertExists()
+        compose.onNodeWithText("Install the Android TV companion").assertExists()
         shot("tv")
         compose.onNodeWithText("Computer").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Open the web player").assertExists()
-        compose.onNodeWithText("Install OpenTune for TV").assertDoesNotExist()
+        compose.onNodeWithText("music.blynx.vip/player/#/home").assertExists()
+        compose.onNodeWithText("Install the Android TV companion").assertDoesNotExist()
         shot("computer")
         compose.onNodeWithText("Speaker").performClick()
         compose.waitForIdle()

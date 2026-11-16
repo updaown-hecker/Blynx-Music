@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Blynx Music
+Comment=Play music in your browser profile with the Blynx Music extension
+Exec=blynx-music
+Icon=vip.blynx.music
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Actions=Setup;
+
+[Desktop Action Setup]
+Name=Set up playback and sign-in
+Exec=blynx-music --setup

@@ -1,0 +1,115 @@
+#!/bin/sh
+# Blynx Music desktop launcher. Distributed under GPL-3.0-or-later.
+set -eu
+
+player_url=https://music.blynx.vip/player/#/home
+extension_url=https://music.blynx.vip/player/#/extension
+youtube_url=https://music.youtube.com/
+browser=${BLYNX_BROWSER:-}
+profile=${BLYNX_BROWSER_PROFILE:-}
+setup=false
+
+usage() {
+  printf '%s\n' 'Usage: blynx-music [--setup] [--browser chrome|chromium|brave|edge] [--profile DIRECTORY]'
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --browser|--profile)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then usage >&2; exit 2; fi
+      case "$1" in
+        --browser) browser=$2 ;;
+        --profile) profile=$2 ;;
+      esac
+      shift 2
+      ;;
+    --setup) setup=true; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+
+requested_browser=$browser
+prefer_flatpak=false
+if [ -z "$browser" ] && command -v xdg-settings >/dev/null 2>&1; then
+  case "$(xdg-settings get default-web-browser 2>/dev/null || true)" in
+    com.google.Chrome*) browser=chrome; prefer_flatpak=true ;;
+    org.chromium.Chromium*) browser=chromium; prefer_flatpak=true ;;
+    com.brave.Browser*) browser=brave; prefer_flatpak=true ;;
+    com.microsoft.Edge*) browser=edge; prefer_flatpak=true ;;
+    google-chrome*) browser=chrome ;;
+    chromium*) browser=chromium ;;
+    brave*) browser=brave ;;
+    microsoft-edge*) browser=edge ;;
+  esac
+fi
+
+find_browser() {
+  case "$1" in
+    chrome) commands='google-chrome-stable google-chrome'; app_id=com.google.Chrome ;;
+    chromium) commands='chromium chromium-browser'; app_id=org.chromium.Chromium ;;
+    brave) commands='brave-browser brave-browser-stable brave'; app_id=com.brave.Browser ;;
+    edge) commands='microsoft-edge-stable microsoft-edge'; app_id=com.microsoft.Edge ;;
+    *) return 1 ;;
+  esac
+  if [ "$prefer_flatpak" = true ] && [ "$1" = "$browser" ] && has_flatpak; then
+    executable=flatpak
+    return 0
+  fi
+  for candidate in $commands; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      executable=$candidate
+      return 0
+    fi
+  done
+  if has_flatpak; then
+    executable=flatpak
+    return 0
+  fi
+  return 1
+}
+
+has_flatpak() {
+  command -v flatpak >/dev/null 2>&1 && flatpak info "$app_id" >/dev/null 2>&1
+}
+
+case "$browser" in
+  ''|chrome|chromium|brave|edge) ;;
+  *) usage >&2; exit 2 ;;
+esac
+executable=''
+if [ -n "$requested_browser" ]; then
+  find_browser "$requested_browser" || true
+else
+  for choice in "$browser" chrome chromium brave edge; do
+    if find_browser "$choice"; then break; fi
+  done
+fi
+
+if [ -z "$executable" ]; then
+  message='Install Chrome, Chromium, Brave or Edge to run Blynx Music.'
+  if [ -n "$requested_browser" ]; then
+    message="The requested browser ($requested_browser) was not found."
+  fi
+  if command -v kdialog >/dev/null 2>&1; then
+    kdialog --title 'Blynx Music' --error "$message"
+  elif command -v zenity >/dev/null 2>&1; then
+    zenity --error --title='Blynx Music' --text="$message"
+  else
+    printf '%s\n' "$message" >&2
+  fi
+  exit 1
+fi
+
+if [ "$setup" = true ]; then
+  set -- --new-window "$extension_url" "$youtube_url"
+else
+  set -- "--app=$player_url"
+fi
+if [ -n "$profile" ]; then
+  set -- "--profile-directory=$profile" "$@"
+fi
+if [ "$executable" = flatpak ]; then
+  exec flatpak run "$app_id" "$@"
+fi
+exec "$executable" "$@"

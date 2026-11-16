@@ -19,9 +19,9 @@ class DiscordRpcTest {
         val before = System.currentTimeMillis()
         val p = DiscordRpc.presence("token", now())
         val a = p.getJSONArray("activities").getJSONObject(0)
-        // A Listening activity: Discord heads the card "Listening to OpenTune" and draws the progress bar.
+        // A Listening activity: Discord heads the card "Listening to Blynx Music" and draws the progress bar.
         assertEquals(2, a.getInt("type"))
-        assertEquals("OpenTune", a.getString("name"))
+        assertEquals("Blynx Music", a.getString("name"))
         assertEquals(0, a.getInt("status_display_type"))
         assertEquals("Labon Ko", a.getString("details"))
         assertEquals("Pritam", a.getString("state"))
@@ -30,6 +30,8 @@ class DiscordRpcTest {
         assertTrue(t.getLong("start") in before - 61_000..before - 58_000)
         assertEquals(240_000.0, (t.getLong("end") - t.getLong("start")).toDouble(), 50.0)
         assertEquals("https://music.youtube.com/watch?v=dQw4w9WgXcQ", a.getJSONObject("metadata").getJSONArray("button_urls").getString(0))
+        assertEquals("Get Blynx Music", a.getJSONArray("buttons").getString(1))
+        assertEquals("https://music.blynx.vip/", a.getJSONObject("metadata").getJSONArray("button_urls").getString(1))
     }
 
     @Test fun keepsWithinDiscordsLimits() {

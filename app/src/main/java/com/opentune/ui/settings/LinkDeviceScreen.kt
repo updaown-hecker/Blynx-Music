@@ -109,7 +109,7 @@ fun LinkDeviceScreen(
         val view = Intent(Intent.ACTION_VIEW, text.toUri())
         if (!com.opentune.ui.account.PairingLinks.receive(view)) {
             if (com.opentune.ui.Links.parse(text) != null || (text.startsWith("opentune://") || com.opentune.data.together.RoomCode.find(text) != null)) com.opentune.ui.Links.receive(view)
-            else Pills.error("That isn't an Blynx Music code", context)
+            else Pills.error("That isn't a Blynx Music code", context)
         }
     }
     val signedIn by AccountStore.signedIn.collectAsState()

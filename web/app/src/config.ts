@@ -7,5 +7,5 @@ export const config = {
   extensionFirefoxUrl: import.meta.env.VITE_EXTENSION_FIREFOX_URL || `${import.meta.env.BASE_URL}downloads/blynx-extension-firefox.zip`,
   /** The version the zips above hold, for the "update available" notice. */
   extensionManifestUrl: import.meta.env.VITE_EXTENSION_MANIFEST_URL || `${import.meta.env.BASE_URL}downloads/extension.json`,
-  androidAppUrl: import.meta.env.VITE_ANDROID_APP_URL || 'https://github.com/updaown-hecker/Blynx-Music/releases/download/v1.1.0/Blynx-Music-v1.1.0-arm64-v8a.apk',
+  androidAppUrl: import.meta.env.VITE_ANDROID_APP_URL || 'https://github.com/updaown-hecker/Blynx-Music/releases/download/v1.2.0/Blynx-Music-v1.2.0-arm64-v8a.apk',
 } as const;

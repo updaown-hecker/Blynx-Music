@@ -1,0 +1,3 @@
+Pin a playlist from Show all to keep it at the front of the Library preview.
+Find playlist import in Show all instead of the Library overview.
+Continue with Google opens Google's account chooser. Email-and-password sign-in is still available.

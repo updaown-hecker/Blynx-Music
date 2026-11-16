@@ -353,29 +353,7 @@ fun LibraryScreen(contentPadding: PaddingValues, actions: SongActions, nav: Libr
                         Modifier.weight(1f),
                     )
                 }
-                // Spotify: a row of its own, its playlists on their own page.
-                val spotifyOn by com.opentune.ui.spotify.SpotifyConnection.connected.collectAsState()
-                val spotifyLists by LibraryStore.playlists.collectAsState()
-                val fromSpotify = remember(spotifyLists) { spotifyLists.count { it.spotifyId != null } }
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).pressable(nav.spotify, 0.98f)
-                        .padding(start = 4.dp, end = 2.dp, top = 10.dp, bottom = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.opentune.R.drawable.ic_spotify), null, Modifier.size(40.dp))
-                    Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                        Text("Spotify", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            when {
-                                fromSpotify > 0 -> if (fromSpotify == 1) "1 playlist" else com.opentune.i18n.Tr.f("{0} playlists", fromSpotify)
-                                spotifyOn -> "Your playlists"
-                                else -> "Connect or import"
-                            },
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+
             }
         }
         item {
@@ -392,14 +370,7 @@ fun LibraryScreen(contentPadding: PaddingValues, actions: SongActions, nav: Libr
             })
         }
         if (libraryUi.playlistList) {
-            // The list, as Library had it before the tiles: new and import first, then the
-            // pinned ones and each source's own, five of each until "Show more".
             item(key = "playlist-new") { ActionLine(Icons.Rounded.Add, "New playlist", if (signedIn) "Here and on YouTube Music" else "On this phone") { naming = true } }
-            item(key = "playlist-import") {
-                ActionLine(null, "Import a playlist", "From a Spotify or YouTube Music link", onClick = nav.importPlaylist, picture = {
-                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.opentune.R.drawable.ic_spotify), null, Modifier.size(30.dp))
-                })
-            }
             playlistGroups(shownRows, libraryUi.pinnedPlaylists).forEach { (group, inGroup) ->
                 item(key = "group:$group") { GroupLabel(group) }
                 val open = group == PINNED || openGroups[group] == true
@@ -417,14 +388,14 @@ fun LibraryScreen(contentPadding: PaddingValues, actions: SongActions, nav: Libr
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             ) {
-                item(key = "new") { NewPlaylistTile(signedIn, { naming = true }, Modifier.width(TILE_WIDTH)) }
-                item(key = "import") {
-                    ActionTile("Import Spotify", "From a playlist link", nav.importPlaylist, Modifier.width(TILE_WIDTH)) {
-                        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.opentune.R.drawable.ic_spotify), null, Modifier.size(64.dp))
-                    }
+                items(top.filter { it.pin in libraryUi.pinnedPlaylists }, key = { it.key }) { row ->
+                    PlaylistTile(row, Modifier.width(TILE_WIDTH).animateItem())
                 }
+                item(key = "new") { NewPlaylistTile(signedIn, { naming = true }, Modifier.width(TILE_WIDTH)) }
                 item(key = "liked") { LikedTile(liked.size, nav.liked, Modifier.width(TILE_WIDTH)) }
-                items(top, key = { it.key }) { row -> PlaylistTile(row, Modifier.width(TILE_WIDTH).animateItem()) }
+                items(top.filterNot { it.pin in libraryUi.pinnedPlaylists }, key = { it.key }) { row ->
+                    PlaylistTile(row, Modifier.width(TILE_WIDTH).animateItem())
+                }
             }
         }
         item(key = "smart-playlists") { SmartPlaylistsRow(nav.smart, nav.newSmart, TILE_WIDTH) }
@@ -581,6 +552,29 @@ fun AllPlaylistsScreen(
                     }
                 }
             }
+            if (!spotify) item(key = "playlist-import", span = { full }) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = if (asList) 16.dp else 0.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ActionLine(
+                        null, "Import a playlist", "From Spotify or YouTube Music",
+                        modifier = Modifier.weight(1f),
+                        picture = {
+                            androidx.compose.foundation.Image(
+                                androidx.compose.ui.res.painterResource(com.opentune.R.drawable.ic_spotify),
+                                null, Modifier.size(30.dp),
+                            )
+                        },
+                        onClick = nav.importPlaylist,
+                    )
+                    IconButton(onClick = nav.spotify, modifier = Modifier.padding(end = 4.dp)) {
+                        Icon(Icons.AutoMirrored.Rounded.QueueMusic, "Browse Spotify playlists")
+                    }
+                }
+            }
             if (spotify) {
                 if (shown.isEmpty()) item(key = "spotify-empty", span = { full }) {
                     Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -598,11 +592,11 @@ fun AllPlaylistsScreen(
             } else if (asList) {
                 item(key = "new") { ActionLine(Icons.Rounded.Add, "New playlist", if (signedIn) "Here and on YouTube Music" else "On this phone") { naming = true } }
                 item(key = "liked") { ActionLine(Icons.Rounded.Favorite, "Liked songs", com.opentune.i18n.Tr.f("{0} songs", liked.size), onClick = nav.liked) }
-                items(shown.size, key = { shown[it].key }) { i -> PlaylistLine(shown[i], Modifier.animateItem()) }
+                items(shown.size, key = { shown[it].key }) { i -> PlaylistLine(shown[i], Modifier.animateItem(), showPin = true) }
             } else {
                 item(key = "new") { NewPlaylistTile(signedIn, { naming = true }) }
                 item(key = "liked") { LikedTile(liked.size, nav.liked) }
-                items(shown.size, key = { shown[it].key }) { i -> PlaylistTile(shown[i], Modifier.animateItem()) }
+                items(shown.size, key = { shown[it].key }) { i -> PlaylistTile(shown[i], Modifier.animateItem(), showPin = true) }
             }
         }
     }
@@ -741,10 +735,11 @@ private fun PlaylistRow(
 
 /** A playlist as a line of the list: cover, name, where it's from; held down, it can be pinned. */
 @Composable
-private fun PlaylistLine(row: LibraryPlaylistRow, modifier: Modifier = Modifier) {
-    PinnableRow(row.pin, modifier) { onLongClick ->
+private fun PlaylistLine(row: LibraryPlaylistRow, modifier: Modifier = Modifier, showPin: Boolean = false) {
+    PinnableRow(row.pin, row.title, modifier, if (showPin) Alignment.CenterEnd else null) { onLongClick ->
         PlaylistRow(
             row.url, row.title, row.subtitle, row.onClick,
+            modifier = if (showPin) Modifier.padding(end = 40.dp) else Modifier,
             from = row.source.takeIf { it == "Spotify" },
             onLongClick = onLongClick,
             cover = if (row.local != null && row.url == null) ({
@@ -756,8 +751,11 @@ private fun PlaylistLine(row: LibraryPlaylistRow, modifier: Modifier = Modifier)
 
 /** A line of the list that does something rather than open a playlist: an icon in a square, a name and a line under it. */
 @Composable
-private fun ActionLine(icon: ImageVector?, title: String, subtitle: String, picture: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
-    PlaylistRow(null, title, subtitle, onClick, cover = {
+private fun ActionLine(
+    icon: ImageVector?, title: String, subtitle: String,
+    modifier: Modifier = Modifier, picture: (@Composable () -> Unit)? = null, onClick: () -> Unit,
+) {
+    PlaylistRow(null, title, subtitle, onClick, modifier, cover = {
         Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh), Alignment.Center) {
             if (picture != null) picture() else if (icon != null) Icon(icon, null, Modifier.size(26.dp))
         }
@@ -792,8 +790,8 @@ private const val LIST_FOLD = 5
 
 /** A playlist as a tile, for the sideways rows; held down, it can be pinned. */
 @Composable
-private fun PlaylistTile(row: LibraryPlaylistRow, modifier: Modifier = Modifier) {
-    PinnableRow(row.pin, modifier) { onLongClick ->
+private fun PlaylistTile(row: LibraryPlaylistRow, modifier: Modifier = Modifier, showPin: Boolean = false) {
+    PinnableRow(row.pin, row.title, modifier, if (showPin) Alignment.TopEnd else null) { onLongClick ->
         Column(Modifier.clip(MaterialTheme.shapes.large).then(Modifier.menuClickable(onClick = row.onClick, onLongClick = onLongClick)).padding(6.dp)) {
             if (row.local != null && row.url == null) com.opentune.ui.components.PlaylistCover(row.title,
                 row.local.songs.map { it.thumbnailUrl }, Modifier.fillMaxWidth().aspectRatio(1f))
@@ -805,14 +803,35 @@ private fun PlaylistTile(row: LibraryPlaylistRow, modifier: Modifier = Modifier)
 
 /** [content] with a long press that offers to pin playlist [pin] to the top of Library, or unpin it. */
 @Composable
-private fun PinnableRow(pin: String, modifier: Modifier = Modifier, content: @Composable (onLongClick: () -> Unit) -> Unit) {
+private fun PinnableRow(
+    pin: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    pinButtonAlignment: Alignment? = null,
+    content: @Composable (onLongClick: () -> Unit) -> Unit,
+) {
     var menu by remember { mutableStateOf(false) }
     val pinned = AppSettings.ui.collectAsState().value.pinnedPlaylists.contains(pin)
     Box(modifier) {
         content { menu = true }
+        val label = if (pinned) "Remove from Library preview" else "Show in Library preview"
+        if (pinButtonAlignment != null) {
+            IconButton(
+                onClick = { LibraryPins.toggle(pin) },
+                modifier = Modifier.align(pinButtonAlignment).padding(8.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            ) {
+                Icon(
+                    Icons.Rounded.PushPin,
+                    com.opentune.i18n.Tr.f(if (pinned) "Remove {0} from Library preview" else "Show {0} in Library preview", title),
+                    tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         androidx.compose.material3.DropdownMenu(menu, { menu = false }, shape = RoundedCornerShape(20.dp)) {
             androidx.compose.material3.DropdownMenuItem(
-                text = { Text(if (pinned) "Unpin" else "Pin to the top") },
+                text = { Text(label) },
                 leadingIcon = { Icon(Icons.Rounded.PushPin, null) },
                 onClick = { menu = false; LibraryPins.toggle(pin) },
             )

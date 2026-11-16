@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import com.opentune.data.library.LibraryStore
@@ -16,6 +17,10 @@ import com.opentune.ui.browse.SongActions
 import com.opentune.ui.theme.OpenTuneTheme
 import java.io.File
 import org.junit.Rule
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -61,7 +66,7 @@ class LibraryTilesScreenshotTest {
         shoot("library-all-playlists") { AllPlaylistsScreen(PaddingValues(), nav, onBack = {}) }
     }
 
-    /** The list view chosen in Settings: new and import, then each source's playlists, five until Show more. */
+    /** The list view chosen in Settings: new, then each source's playlists, five until Show more. */
     @Test fun libraryList() {
         playlists()
         com.opentune.data.settings.AppSettings.init(ApplicationProvider.getApplicationContext())
@@ -98,6 +103,38 @@ class LibraryTilesScreenshotTest {
             shoot("library-all-playlists-list") { AllPlaylistsScreen(PaddingValues(), nav, onBack = {}) }
         } finally {
             com.opentune.data.settings.AppSettings.updateUi { it.copy(playlistList = false) }
+        }
+    }
+
+    @Test fun pinsAPlaylistFromShowAllAndKeepsImportThere() {
+        val settings = com.opentune.data.settings.AppSettings
+        settings.init(ApplicationProvider.getApplicationContext())
+        settings.updateUi { it.copy(playlistList = false, pinnedPlaylists = emptyList()) }
+        playlists()
+        val showingAll = mutableStateOf(true)
+        try {
+            compose.setContent {
+                OpenTuneTheme(ThemeSettings(mode = ThemeMode.DARK, dynamicColor = false)) {
+                    if (showingAll.value) AllPlaylistsScreen(PaddingValues(), nav, onBack = {})
+                    else LibraryScreen(PaddingValues(), SongActions(null, false, { _, _, _, _ -> }, {}, {}), nav)
+                }
+            }
+            compose.onNodeWithText("Import a playlist").assertExists()
+            val pin = "Show Lub in Library preview"
+            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasContentDescription(pin))
+            compose.onNodeWithContentDescription(pin).performClick()
+            org.junit.Assert.assertTrue(settings.ui.value.pinnedPlaylists.contains(LibraryStore.playlists.value.first { it.name == "Lub" }.id))
+            compose.runOnIdle { showingAll.value = false }
+            compose.onNode(
+                hasScrollToNodeAction() and androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(
+                    androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange,
+                ),
+            ).performScrollToNode(hasText("Lub"))
+            compose.onNodeWithText("Lub").assertExists()
+            compose.onNodeWithText("Import a playlist").assertDoesNotExist()
+            compose.onNodeWithText("Import Spotify").assertDoesNotExist()
+        } finally {
+            settings.updateUi { it.copy(playlistList = false, pinnedPlaylists = emptyList()) }
         }
     }
 

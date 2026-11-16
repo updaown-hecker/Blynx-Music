@@ -523,13 +523,13 @@ fun MenuRow(icon: ImageVector, label: String, onClick: () -> Unit) {
 fun AddToPlaylistDialog(song: Song, onDone: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current.applicationContext
     val allPlaylists by LibraryStore.playlists.collectAsState()
-    val playlists = remember(allPlaylists) { allPlaylists.filter { it.spotifyId == null } }
+    val playlists = remember(allPlaylists) { allPlaylists.filter { it.spotifyId == null && !it.locked } }
     val signedIn by com.opentune.data.account.AccountStore.signedIn.collectAsState()
     val account by com.opentune.data.library.LibraryCache.playlists.collectAsState()
     val owned by com.opentune.data.library.LibraryCache.owned.collectAsState()
     // A file on this phone can't go on YouTube Music.
     val online = signedIn && isYouTubeId(song.videoId)
-    val accountPlaylists = if (online) remember(account, owned, playlists) { PlaylistLinks.pickable(account, owned, playlists) } else emptyList()
+    val accountPlaylists = if (online) remember(account, owned, allPlaylists) { PlaylistLinks.pickable(account, owned, allPlaylists) } else emptyList()
     // Which of the account's playlists already have the song, looked up as the sheet opens.
     val inAccount = remember(song.videoId) { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
     LaunchedEffect(accountPlaylists, song.videoId) {

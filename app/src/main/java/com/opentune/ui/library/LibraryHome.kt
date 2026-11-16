@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import com.opentune.ui.components.glass
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.PlayArrow
@@ -227,7 +228,8 @@ private fun rememberPlaylistRows(nav: LibraryNav): List<LibraryPlaylistRow> {
         }
         val saved = p.songs.count { downloadEntries[it.videoId]?.state == DownloadState.DONE }
         rows += LibraryPlaylistRow(p.id, p.name,
-            (if (p.songs.size == 1) "1 song" else com.opentune.i18n.Tr.f("{0} songs", p.songs.size)) + if (saved > 0) com.opentune.i18n.Tr.f(" · {0} downloaded", saved) else "",
+            if (p.locked) "Locked playlist" else
+                (if (p.songs.size == 1) "1 song" else com.opentune.i18n.Tr.f("{0} songs", p.songs.size)) + if (saved > 0) com.opentune.i18n.Tr.f(" · {0} downloaded", saved) else "",
             p.coverUrl, p, pin = p.id, source = source,
             plays = p.songs.sumOf { playCounts[it.videoId] ?: 0 }, onClick = { nav.playlist(p.id) })
     }
@@ -1522,11 +1524,17 @@ fun LocalPlaylistScreen(id: String, contentPadding: PaddingValues, actions: Song
     var savingOnline by remember { mutableStateOf(false) }
     var choosingPrivacy by remember { mutableStateOf(false) }
     var privateShare by remember { mutableStateOf(false) }
+    var lockOptions by remember(id) { mutableStateOf(false) }
+    if (playlist?.locked == true) {
+        LockedPlaylistScreen(playlist, onBack)
+        return
+    }
     if (adding && playlist != null && playlist.spotifyId == null) AddSongsSheet(id, onDismiss = { adding = false })
     // Changes made on YouTube Music since, once this page's own have gone.
     val remoteId = playlist?.remoteId
-    LaunchedEffect(id, signedIn, remoteId) {
-        if (signedIn && remoteId != null) PlaylistSync.refresh(id)
+    val restricted = playlist?.restrictsPlayback == true
+    LaunchedEffect(id, signedIn, remoteId, restricted) {
+        if (signedIn && remoteId != null && !restricted) PlaylistSync.refresh(id)
     }
     if (playlist == null) {
         LaunchedEffect(Unit) { onBack() }
@@ -1534,6 +1542,9 @@ fun LocalPlaylistScreen(id: String, contentPadding: PaddingValues, actions: Song
     }
     // Tagged with the playlist, so smart shuffle can offer to keep a song it mixed in.
     val songs = remember(playlist) { playlist.songs.map { it.toSong().copy(playbackSourceId = playlist.id) } }
+    var protect by remember(id) { mutableStateOf(false) }
+    if (lockOptions) PlaylistLockOptions(playlist, onProtect = { protect = true }, onDismiss = { lockOptions = false })
+    if (protect) PlaylistPasswordDialog(playlist, setup = true, onDismiss = { protect = false })
     val search = remember(id) { com.opentune.ui.browse.PlaylistSearch() }
     val query = search.query
     val searching = search.open
@@ -1626,7 +1637,8 @@ fun LocalPlaylistScreen(id: String, contentPadding: PaddingValues, actions: Song
             else if (signedIn && remoteId != null) PlaylistSync.refresh(id)
         },
         onAddSongs = { adding = true }, onRename = { renaming = true }, onDelete = { deleting = true },
-        onShare = share, onPrivacy = if (online) ({ choosingPrivacy = true }) else null, onDismiss = { moreOpen = false })
+        onShare = share, onPrivacy = if (online) ({ choosingPrivacy = true }) else null,
+        onLock = { moreOpen = false; lockOptions = true }, onDismiss = { moreOpen = false })
     // Where the playlist stands with YouTube Music, under its cover.
     val status: (@Composable () -> Unit)? = when {
         // A copy of a Spotify playlist: it follows Spotify, not YouTube Music.
@@ -1794,6 +1806,7 @@ private fun LocalListMoreSheet(
     onDelete: () -> Unit,
     onShare: () -> Unit,
     onPrivacy: (() -> Unit)? = null,
+    onLock: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -1820,9 +1833,14 @@ private fun LocalListMoreSheet(
         val card = com.opentune.ui.components.LocalFloatingCard.current
         val close: () -> Unit = { card?.close() ?: onDismiss() }
         Column {
-            com.opentune.ui.components.MenuRow(Icons.Rounded.Refresh, "Refresh") { close(); onRefresh() }
-            com.opentune.ui.components.MenuRow(Icons.AutoMirrored.Rounded.PlaylistPlay, "Play next") { close(); songs.asReversed().forEach(actions.playNext) }
-            com.opentune.ui.components.MenuRow(Icons.AutoMirrored.Rounded.QueueMusic, "Add to queue") { close(); songs.forEach(actions.addToQueue) }
+            if (!spotify) com.opentune.ui.components.MenuRow(Icons.Rounded.Lock,
+                if (playlist.passwordProtected || playlist.playlistOnly) "Playlist lock settings" else "Lock playlist",
+            ) { onLock() }
+            if (!playlist.restrictsPlayback) {
+                com.opentune.ui.components.MenuRow(Icons.Rounded.Refresh, "Refresh") { close(); onRefresh() }
+                com.opentune.ui.components.MenuRow(Icons.AutoMirrored.Rounded.PlaylistPlay, "Play next") { close(); songs.asReversed().forEach(actions.playNext) }
+                com.opentune.ui.components.MenuRow(Icons.AutoMirrored.Rounded.QueueMusic, "Add to queue") { close(); songs.forEach(actions.addToQueue) }
+            }
             com.opentune.ui.components.MenuRow(Icons.Rounded.Download, "Download all") {
                 close()
                 songs.forEach { Downloads.enqueue(context, it) }

@@ -286,7 +286,10 @@ class PlayerConnection(private val context: Context) {
         _source.value = source
         endSmartShuffle()
         SmartShuffle.clear()
-        val kept = handQueued(controller)
+        val playlist = song.playbackSourceId?.let(LibraryStore::playlist)
+        if (playlist?.locked == true) return
+        ++queueStamp
+        val kept = if (playlist?.restrictsPlayback == true) emptyList() else handQueued(controller)
         controller.setMediaItems((listOf(song.copy(queueTier = QueueTier.CONTEXT)) + kept).map { it.toMediaItem() }, 0, 0L)
         controller.prepare()
         controller.play()
@@ -320,10 +323,13 @@ class PlayerConnection(private val context: Context) {
     ) {
         val controller = controller ?: return
         if (songs.isEmpty()) return
+        val playlist = songs.first().playbackSourceId?.let(LibraryStore::playlist)
+        if (playlist?.locked == true) return
+        val restricted = playlist?.restrictsPlayback == true
         _error.value = null
         _source.value = source
         endSmartShuffle()
-        val origin = if (fromList) SmartShuffle.startList(songs) else { SmartShuffle.clear(); null }
+        val origin = if (fromList && !restricted) SmartShuffle.startList(songs) else { SmartShuffle.clear(); null }
         val mixing = smart && origin != null && origin.canMix
         val shuffled = shuffle || smart
         val seed = Random.nextLong()
@@ -337,7 +343,7 @@ class PlayerConnection(private val context: Context) {
         }.let { o ->
             // Songs queued by hand come right after the first song. Smart shuffle
             // slots its picks by position, so it starts on the list alone.
-            val kept = if (mixing) emptyList() else handQueued(controller)
+            val kept = if (mixing || restricted) emptyList() else handQueued(controller)
             if (kept.isEmpty()) o else {
                 val at = (if (shuffled) 0 else startIndex.coerceIn(o.indices)) + 1
                 o.take(at) + kept + o.drop(at)
@@ -407,7 +413,8 @@ class PlayerConnection(private val context: Context) {
         val current = player.currentMediaItem
         // Anything else may have replaced the queue since (Android Auto, a
         // shared link); the list still counts while one of its songs plays.
-        val fromList = origin != null && origin.canMix && current != null &&
+        val fromList = current?.playlistSourceId?.let(LibraryStore::playlist)?.restrictsPlayback != true &&
+            origin != null && origin.canMix && current != null &&
                 (current.mediaId in origin.songIds || current.toSong().smartShuffle)
         // With the setting off the button only offers smart shuffle to turn
         // off one already running.
@@ -426,6 +433,7 @@ class PlayerConnection(private val context: Context) {
      * the order is now the queue's own.
      */
     private fun smartShuffleOn(controller: MediaController) {
+        if (controller.currentMediaItem?.playlistSourceId?.let(LibraryStore::playlist)?.restrictsPlayback == true) return
         val origin = SmartShuffle.origin.value ?: return
         val upcoming = controller.upcomingPlayOrder().drop(1)
         val items = upcoming.map(controller::getMediaItemAt).filterNot { it.toSong().smartShuffle }
@@ -476,6 +484,8 @@ class PlayerConnection(private val context: Context) {
             landed?.join()
             val controller = controller ?: return@launch
             if (SmartShuffle.origin.value?.token != origin.token || !SmartShuffle.on.value) return@launch
+            val sourceId = controller.currentMediaItem?.playlistSourceId
+            if (sourceId?.let(LibraryStore::playlist)?.restrictsPlayback == true) return@launch
             val queued = (0 until controller.mediaItemCount).mapTo(HashSet()) { controller.getMediaItemAt(it).mediaId }
             val mixed = SmartShuffle.mix(list, found.filter { it.videoId !in queued }, LibraryStore.hidden.value, seed)
             if (mixed.none { it.smartShuffle }) {
@@ -487,6 +497,7 @@ class PlayerConnection(private val context: Context) {
             // Counted from the song playing now, which may have moved on while the picks were found.
             val currentId = controller.currentMediaItem?.mediaId
             val after = mixed.drop(mixed.indexOfFirst { !it.smartShuffle && it.videoId == currentId } + 1)
+                .map { if (it.smartShuffle) it.copy(playbackSourceId = sourceId) else it }
             if (SmartShuffle.insertions(upcoming.map { it.videoId }, after) != null) {
                 // The queue is still the list as mixed: swap everything after
                 // the playing song for the mixed tail in two calls, instead of
@@ -529,6 +540,17 @@ class PlayerConnection(private val context: Context) {
 
     private fun queueByHand(song: Song, next: Boolean) {
         val controller = controller ?: return
+        val from = song.playbackSourceId?.let(LibraryStore::playlist)
+        if (from?.locked == true) return
+        val active = controller.currentMediaItem?.playlistSourceId?.let(LibraryStore::playlist)
+        if (active?.restrictsPlayback == true && active.songs.none { it.videoId == song.videoId }) {
+            com.opentune.data.Pills.info("This queue only plays songs in the playlist.")
+            return
+        }
+        if (from?.passwordProtected == true && active?.id != from.id && controller.mediaItemCount > 0) {
+            com.opentune.data.Pills.info("Start playback from the protected playlist.")
+            return
+        }
         if (controller.mediaItemCount == 0) return play(song)
         val at = QueueTimeline.userInsertIndex(tiers(controller), controller.currentMediaItemIndex, next)
         controller.addMediaItem(at, song.copy(queueTier = QueueTier.USER).toMediaItem())
@@ -558,6 +580,8 @@ class PlayerConnection(private val context: Context) {
     /** Stops playback and clears the queue entirely: nothing is left playing. */
     fun dismiss() {
         val controller = controller ?: return
+        ++queueStamp
+        endSmartShuffle()
         controller.stop()
         controller.clearMediaItems()
     }
@@ -565,6 +589,7 @@ class PlayerConnection(private val context: Context) {
     /** Swaps everything after the current track for [songs], leaving the current one playing. */
     fun replaceUpcoming(songs: List<Song>) {
         val controller = controller ?: return
+        if (controller.currentMediaItem?.playlistSourceId?.let(LibraryStore::playlist)?.restrictsPlayback == true) return
         val from = controller.currentMediaItemIndex + 1
         if (from < controller.mediaItemCount) controller.removeMediaItems(from, controller.mediaItemCount)
         if (songs.isNotEmpty()) controller.addMediaItems(songs.map { it.toMediaItem() })

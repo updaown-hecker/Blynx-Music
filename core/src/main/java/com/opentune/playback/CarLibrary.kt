@@ -60,7 +60,17 @@ class CarLibrary(private val context: Context) {
         putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM)
     }
 
-    fun item(mediaId: String): MediaItem? = known[mediaId] ?: if (mediaId == ROOT) root() else null
+    fun item(mediaId: String): MediaItem? {
+        if (isProtectedPlaylistId(mediaId)) return null
+        return known[mediaId] ?: if (mediaId == ROOT) root() else null
+    }
+
+    private fun isProtectedPlaylistId(mediaId: String): Boolean {
+        val folder = split(mediaId)?.first ?: mediaId
+        return folder.startsWith(PLAYLIST) && LibraryStore.isPlaylistProtected(folder.removePrefix(PLAYLIST))
+    }
+
+    fun isProtectedPlaylistTrack(item: MediaItem): Boolean = isProtectedPlaylistId(item.mediaId)
 
     suspend fun children(parentId: String, browser: MediaSession.ControllerInfo?): List<MediaItem> {
         val items = when {
@@ -78,7 +88,9 @@ class CarLibrary(private val context: Context) {
             parentId == RADIO -> songs(RADIO, radioStations().map { it.toSong() })
             parentId.startsWith(PLAYLIST) -> {
                 val playlist = LibraryStore.playlists.value.firstOrNull { it.id == parentId.removePrefix(PLAYLIST) }
-                songs(parentId, playlist?.songs.orEmpty().map { it.toSong() })
+                songs(parentId, playlist?.takeUnless { it.passwordProtected }?.let { p ->
+                    p.songs.map { it.toSong().copy(playbackSourceId = p.id) }
+                }.orEmpty())
             }
             parentId.startsWith(COLLECTION) ->
                 songs(parentId, MusicRepository.collection(parentId.removePrefix(COLLECTION)).songs)
@@ -113,12 +125,15 @@ class CarLibrary(private val context: Context) {
      * plays the best match, and autoplay carries on after it.
      */
     suspend fun resolve(items: List<MediaItem>, startIndex: Int, startPositionMs: Long): MediaSession.MediaItemsWithStartPosition {
+        if (items.any(::isProtectedPlaylistTrack)) throw UnsupportedOperationException("Playlist is protected")
         val single = items.singleOrNull()
         if (single != null) {
             val query = single.requestMetadata.searchQuery
             if (single.mediaId.isEmpty() && query != null) return voice(query)
             val (parent, videoId) = split(single.mediaId) ?: (null to single.mediaId)
             if (parent != null) {
+                // Playlist edits and lock changes can make a cached car list stale.
+                if (parent.startsWith(PLAYLIST)) children(parent, null)
                 val songs = listed[parent] ?: run {
                     runCatching { children(parent, null) }
                     listed[parent]
@@ -136,7 +151,8 @@ class CarLibrary(private val context: Context) {
     fun toQueueItem(item: MediaItem): MediaItem {
         val videoId = split(item.mediaId)?.second ?: item.mediaId
         if (videoId == item.mediaId) return item.buildUpon().setUri(trackUri(videoId)).build()
-        val known = listed.values.firstNotNullOfOrNull { list -> list.firstOrNull { it.videoId == videoId } }
+        val parent = split(item.mediaId)?.first
+        val known = listed[parent]?.firstOrNull { it.videoId == videoId }
         val song = known ?: Song(
             videoId = videoId,
             title = item.mediaMetadata.title?.toString().orEmpty(),
@@ -184,7 +200,7 @@ class CarLibrary(private val context: Context) {
         add(folder(LIKED, "Liked songs", subtitle = com.opentune.i18n.Tr.f("{0} songs", liked.size), artwork = liked.firstOrNull()?.thumbnailUrl))
         val downloads = Downloads.doneNow()
         add(folder(DOWNLOADS, "Downloads", subtitle = com.opentune.i18n.Tr.f("{0} songs", downloads.size), artwork = downloads.firstOrNull()?.song?.thumbnailUrl))
-        LibraryStore.playlists.value.forEach { p ->
+        LibraryStore.playlists.value.filterNot { it.passwordProtected }.forEach { p ->
             add(folder("$PLAYLIST${p.id}", p.name, subtitle = com.opentune.i18n.Tr.f("{0} songs", p.songs.size), artwork = p.songs.firstOrNull()?.thumbnailUrl, type = MediaMetadata.MEDIA_TYPE_PLAYLIST))
         }
         if (radioStations().isNotEmpty()) {

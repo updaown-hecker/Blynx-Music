@@ -93,7 +93,7 @@ object PlaylistSync {
         sending.withLock {
             send()
             if (!AccountStore.signedIn.value) return@withLock
-            val linked = LibraryStore.playlists.value.filter { it.remoteId != null && (id == null || it.id == id) }
+            val linked = LibraryStore.playlists.value.filter { it.remoteId != null && !it.restrictsPlayback && (id == null || it.id == id) }
             for (p in linked) {
                 if (isWaiting(p.id)) continue
                 try {
@@ -243,7 +243,7 @@ object PlaylistSync {
 
     private suspend fun apply(edit: PlaylistEdit) {
         if (edit.kind == PlaylistEdit.Kind.CREATE) return create(edit)
-        val local = LibraryStore.playlist(edit.playlist)
+        val local = LibraryStore.playlistForSync(edit.playlist)
         // Nothing on YouTube Music to change.
         val remote = edit.remoteId ?: local?.remoteId ?: return
         when (edit.kind) {
@@ -276,13 +276,13 @@ object PlaylistSync {
      * sent and queued now.
      */
     private suspend fun create(edit: PlaylistEdit) {
-        val p = LibraryStore.playlist(edit.playlist) ?: return
+        val p = LibraryStore.playlistForSync(edit.playlist) ?: return
         if (p.remoteId != null) return
         val sent = p.songs.map { it.videoId }.filter(::isYouTubeId)
         val privacy = p.privacy ?: PlaylistPrivacy.PRIVATE
         val remote = Innertube.createPlaylist(p.name, privacy, videoIds = sent)
         val linked = synchronized(LibraryStore) {
-            val now = LibraryStore.playlist(edit.playlist) ?: return@synchronized false
+            val now = LibraryStore.playlistForSync(edit.playlist) ?: return@synchronized false
             LibraryStore.link(now.id, remote, currentAccount())
             change { SyncQueue.done(it, edit.seq) }
             val have = now.songs.map { it.videoId }.filter(::isYouTubeId)

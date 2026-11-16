@@ -613,6 +613,7 @@ class PlaybackService : MediaLibraryService() {
         scope.launch { skipDisliked(player) }
 
         restoreQueue(player)
+        scope.launch { LibraryStore.playlists.collect { enforcePlaylistQueue(player) } }
         scope.launch { keepQueueSaved(player) }
     }
 
@@ -649,14 +650,53 @@ class PlaybackService : MediaLibraryService() {
     private fun restoreQueue(player: ExoPlayer) {
         if (player.mediaItemCount > 0) return
         val saved = QueueStore.load() ?: return
-        val items = saved.songs.mapIndexed { i, ref ->
-            ref.toSong().copy(queueTier = saved.tiers?.getOrNull(i) ?: QueueTier.CONTEXT).toMediaItem()
-        }
+        val items = restorableItems(saved)
         // A saved queue with no songs in it has no index to start at.
         if (items.isEmpty()) return
         player.setMediaItems(items, saved.index.coerceIn(items.indices), saved.positionMs.coerceAtLeast(0))
         player.shuffleModeEnabled = saved.shuffle
         player.repeatMode = saved.repeat
+        enforcePlaylistQueue(player)
+    }
+
+    private fun restorableItems(saved: QueueStore.Saved): List<MediaItem> {
+        if (saved.playlistSourceIds.orEmpty().any { it != null && LibraryStore.isPlaylistProtected(it) }) return emptyList()
+        return saved.songs.mapIndexed { i, ref ->
+            ref.toSong().copy(
+                playbackSourceId = saved.playlistSourceIds?.getOrNull(i),
+                queueTier = saved.tiers?.getOrNull(i) ?: QueueTier.CONTEXT,
+            ).toMediaItem()
+        }
+    }
+
+    private fun enforcePlaylistQueue(player: Player) {
+        val current = player.currentMediaItem ?: return
+        val playlist = current.playlistSourceId?.let(LibraryStore::playlist)
+        val items = (0 until player.mediaItemCount).map(player::getMediaItemAt)
+        if (items.any { it.playlistSourceId?.let(LibraryStore::isPlaylistProtected) == true }) QueueStore.clear()
+        if (playlist == null || !playlist.restrictsPlayback) return
+        radioJob?.cancel()
+        val allowed = playlist.songs.mapTo(HashSet()) { it.videoId }
+        if (playlist.locked || current.mediaId !in allowed) {
+            player.stop()
+            player.clearMediaItems()
+            return
+        }
+        items.indices.reversed().filter { items[it].mediaId !in allowed }.forEach(player::removeMediaItem)
+    }
+
+    private fun queueSnapshot(player: Player): QueueStore.Saved? {
+        val items = (0 until player.mediaItemCount).map(player::getMediaItemAt)
+        val sources = items.map { it.playlistSourceId }
+        if (sources.any { it != null && LibraryStore.isPlaylistProtected(it) }) return null
+        val tiers = items.map { it.queueTier }
+        return QueueStore.Saved(
+            items.map { SongRef.of(it.toSong()) }, player.currentMediaItemIndex, player.currentPosition,
+            tiers = tiers.takeIf { t -> t.any { it != QueueTier.CONTEXT } },
+            shuffle = player.shuffleModeEnabled,
+            repeat = player.repeatMode,
+            playlistSourceIds = sources.takeIf { s -> s.any { it != null } },
+        )
     }
 
     /**
@@ -676,14 +716,12 @@ class PlaybackService : MediaLibraryService() {
         while (true) {
             delay(QUEUE_SAVE_MS)
             if (player.mediaItemCount == 0) continue
-            val items = (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }
-            val tiers = items.map { it.queueTier }
-            val saved = QueueStore.Saved(
-                items.map { SongRef.of(it.toSong()) }, player.currentMediaItemIndex, player.currentPosition,
-                tiers = tiers.takeIf { t -> t.any { it != QueueTier.CONTEXT } },
-                shuffle = player.shuffleModeEnabled,
-                repeat = player.repeatMode,
-            )
+            val saved = queueSnapshot(player)
+            if (saved == null) {
+                last = null
+                withContext(Dispatchers.IO) { QueueStore.clear() }
+                continue
+            }
             if (saved == last) continue
             last = saved
             withContext(Dispatchers.IO) { QueueStore.save(saved) }
@@ -769,7 +807,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         ExternalStreams.playing(null, null)
         (mediaSession?.player as? ExoPlayer)?.takeIf { it.mediaItemCount > 0 }?.let { p ->
-            QueueStore.save(QueueStore.Saved((0 until p.mediaItemCount).map { SongRef.of(p.getMediaItemAt(it).toSong()) }, p.currentMediaItemIndex, p.currentPosition))
+            queueSnapshot(p)?.let(QueueStore::save) ?: QueueStore.clear()
         }
         com.opentune.data.AppHooks.onPlayerStopped(this)
         crossfade?.release()
@@ -851,7 +889,7 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val saved = QueueStore.load()
                 ?: return Futures.immediateFailedFuture(UnsupportedOperationException("Nothing to resume"))
-            val items = saved.songs.map { it.toSong().toMediaItem() }
+            val items = restorableItems(saved)
             if (items.isEmpty()) return Futures.immediateFailedFuture(UnsupportedOperationException("Nothing to resume"))
             return Futures.immediateFuture(
                 MediaSession.MediaItemsWithStartPosition(items, saved.index.coerceIn(items.indices), saved.positionMs.coerceAtLeast(0)),
@@ -862,9 +900,17 @@ class PlaybackService : MediaLibraryService() {
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<MutableList<MediaItem>> = Futures.immediateFuture(
-            mediaItems.map(car::toQueueItem).toMutableList(),
-        )
+        ): ListenableFuture<MutableList<MediaItem>> {
+            val playlist = mediaSession.player.currentMediaItem?.playlistSourceId?.let(LibraryStore::playlist)
+            val items = mediaItems.filterNot(car::isProtectedPlaylistTrack).map(car::toQueueItem)
+            val accepted = if (playlist?.restrictsPlayback == true) {
+                val allowed = playlist.songs.mapTo(HashSet()) { it.videoId }
+                items.filter { it.mediaId in allowed }.map { it.fromPlaylist(playlist.id) }
+            } else {
+                items.filterNot { it.playlistSourceId?.let(LibraryStore::playlist)?.passwordProtected == true }
+            }
+            return Futures.immediateFuture(accepted.toMutableList())
+        }
 
         override fun onSetMediaItems(
             mediaSession: MediaSession,
@@ -873,7 +919,12 @@ class PlaybackService : MediaLibraryService() {
             startIndex: Int,
             startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = scope.future {
-            car.resolve(mediaItems, startIndex, startPositionMs)
+            val origin = mediaItems.getOrNull(startIndex)?.playlistSourceId?.let(LibraryStore::playlist)
+            val resolved = car.resolve(mediaItems, startIndex, startPositionMs)
+            if (resolved.mediaItems.any { it.playlistSourceId?.let(LibraryStore::playlist)?.locked == true } || origin?.locked == true) {
+                throw UnsupportedOperationException("Playlist is locked")
+            }
+            resolved
         }
 
         override fun onGetLibraryRoot(
@@ -2487,6 +2538,7 @@ class PlaybackService : MediaLibraryService() {
      * decides whether music carries on after an album or playlist that was chosen.
      */
     private fun radioWanted(player: Player): Boolean {
+        if (player.currentMediaItem?.playlistSourceId?.let(LibraryStore::playlist)?.restrictsPlayback == true) return false
         if (AppSettings.playback.value.autoplay) return true
         val chosen = (0 until player.mediaItemCount).count { player.getMediaItemAt(it).queueTier != QueueTier.AUTOPLAY }
         return chosen == 1
@@ -2610,7 +2662,8 @@ class PlaybackService : MediaLibraryService() {
                 return@launch
             }
             val ended = player.playbackState == Player.STATE_ENDED
-            player.addMediaItems(additions.map { it.copy(queueTier = QueueTier.AUTOPLAY).toMediaItem() })
+            val playlistId = player.currentMediaItem?.playlistSourceId
+            player.addMediaItems(additions.map { it.copy(queueTier = QueueTier.AUTOPLAY, playbackSourceId = playlistId).toMediaItem() })
             // The song finished before the next ones came; carry on into them.
             if (ended && player.playWhenReady) {
                 player.seekToNextMediaItem()

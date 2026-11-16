@@ -7,6 +7,13 @@ Blynx Music Android test build based on OpenTune.
 
 Open the downloaded APK and allow installation from the browser or file manager if Android asks. In Appearance, choose **Clear refraction**, **Original liquid**, or one of the other surface styles. Turn **Liquid Glass** off to disable optical refraction. **Reduce dynamic blur** also disables backdrop blur.
 
+## 1.2.6
+
+- Open a playlist you created, tap **⋯**, then **Lock playlist**.
+- **Playlist only** pauses incoming YouTube Music playlist changes and keeps autoplay and Smart Shuffle from adding suggestions. Manual playlist edits still work.
+- **Password-protect playlist** locks viewing, editing and playback until unlocked. Devices with enrolled strong biometrics can also use Android's fingerprint or biometric prompt. The playlist relocks and its playback stops when the app goes into the background.
+- Protection applies inside the Android app. A separate copy in YouTube Music has its own privacy settings. Protected playlists are omitted from the app's export.
+
 ## 1.2.1
 
 - Branded labels in the phone’s audio and listening history settings, the Wear OS source, and add-on verification messages.

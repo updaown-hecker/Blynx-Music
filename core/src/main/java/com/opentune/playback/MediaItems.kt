@@ -30,6 +30,15 @@ private const val EXTRA_EXPLICIT = "explicit"
 private const val EXTRA_ARTIST_ID = "artistId"
 private const val EXTRA_SMART_SHUFFLE = "smartShuffle"
 private const val EXTRA_TIER = "tier"
+private const val EXTRA_PLAYLIST = "playbackPlaylist"
+
+internal val MediaItem.playlistSourceId: String?
+    get() = mediaMetadata.extras?.getString(EXTRA_PLAYLIST)
+
+internal fun MediaItem.fromPlaylist(id: String): MediaItem {
+    val extras = Bundle(mediaMetadata.extras ?: Bundle()).apply { putString(EXTRA_PLAYLIST, id) }
+    return buildUpon().setMediaMetadata(mediaMetadata.buildUpon().setExtras(extras).build()).build()
+}
 
 /**
  * Local files play straight from MediaStore and downloads from their file;
@@ -99,6 +108,7 @@ fun Song.toMediaItem(): MediaItem =
                         isExplicit?.let { putBoolean(EXTRA_EXPLICIT, it) }
                         // Kept so "Don't play [artist]" from the player knows the artist by id too.
                         artistId?.let { putString(EXTRA_ARTIST_ID, it) }
+                        playbackSourceId?.let { putString(EXTRA_PLAYLIST, it) }
                         if (smartShuffle) putBoolean(EXTRA_SMART_SHUFFLE, true)
                         if (queueTier != QueueTier.CONTEXT) putString(EXTRA_TIER, queueTier.name)
                     },
@@ -118,6 +128,7 @@ fun MediaItem.toSong(): Song =
         isExplicit = mediaMetadata.extras?.takeIf { it.containsKey(EXTRA_EXPLICIT) }?.getBoolean(EXTRA_EXPLICIT),
         artistId = mediaMetadata.extras?.getString(EXTRA_ARTIST_ID),
         smartShuffle = mediaMetadata.extras?.getBoolean(EXTRA_SMART_SHUFFLE) == true,
+        playbackSourceId = playlistSourceId,
         queueTier = mediaMetadata.extras?.getString(EXTRA_TIER)?.let { t -> QueueTier.entries.firstOrNull { it.name == t } } ?: QueueTier.CONTEXT,
     )
 

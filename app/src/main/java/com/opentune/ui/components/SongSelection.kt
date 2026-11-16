@@ -207,14 +207,14 @@ private fun androidx.compose.foundation.layout.RowScope.BarAction(icon: ImageVec
 internal fun AddAllToPlaylistDialog(songs: List<Song>, onDismiss: () -> Unit, onDone: () -> Unit) {
     val context = LocalContext.current.applicationContext
     val all by LibraryStore.playlists.collectAsState()
-    val playlists = remember(all) { all.filter { it.spotifyId == null } }
+    val playlists = remember(all) { all.filter { it.spotifyId == null && !it.locked } }
     // Signed in, the account's own playlists on YouTube Music are offered too, as for one song:
     // without them, someone whose playlists are all there was sent straight to naming a new one.
     val signedIn by com.opentune.data.account.AccountStore.signedIn.collectAsState()
     val account by com.opentune.data.library.LibraryCache.playlists.collectAsState()
     val owned by com.opentune.data.library.LibraryCache.owned.collectAsState()
     val online = signedIn && songs.any { isYouTubeId(it.videoId) }
-    val accountPlaylists = if (online) remember(account, owned, playlists) { com.opentune.data.library.PlaylistLinks.pickable(account, owned, playlists) } else emptyList()
+    val accountPlaylists = if (online) remember(account, owned, all) { com.opentune.data.library.PlaylistLinks.pickable(account, owned, all) } else emptyList()
     val ids = remember(songs) { songs.mapTo(HashSet()) { it.videoId } }
     fun addTo(id: String) {
         val have = LibraryStore.playlist(id)?.songs?.map { it.videoId }?.toHashSet().orEmpty()

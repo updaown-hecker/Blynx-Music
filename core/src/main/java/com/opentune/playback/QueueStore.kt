@@ -24,6 +24,7 @@ object QueueStore {
         val tiers: List<QueueTier>? = null,
         val shuffle: Boolean = false,
         val repeat: Int = 0,
+        val playlistSourceIds: List<String?>? = null,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -37,11 +38,21 @@ object QueueStore {
         runCatching { json.decodeFromString(Saved.serializer(), f.readText()) }.getOrNull()
     }?.takeIf { it.songs.isNotEmpty() }
 
+    @Synchronized
+    fun clear() {
+        file?.delete()
+    }
+
+    @Synchronized
     fun save(saved: Saved) {
         val f = file ?: return
         runCatching {
             val tmp = File(f.parentFile, "queue.json.tmp")
-            tmp.writeText(json.encodeToString(Saved.serializer(), saved.copy(songs = saved.songs.take(MAX_SONGS), tiers = saved.tiers?.take(MAX_SONGS))))
+            tmp.writeText(json.encodeToString(Saved.serializer(), saved.copy(
+                songs = saved.songs.take(MAX_SONGS),
+                tiers = saved.tiers?.take(MAX_SONGS),
+                playlistSourceIds = saved.playlistSourceIds?.take(MAX_SONGS),
+            )))
             tmp.renameTo(f)
         }
     }

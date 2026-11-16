@@ -77,7 +77,12 @@ data class LocalPlaylist(
     val spotifyRevision: String? = null,
     /** Spotify's cover for it. */
     val coverUrl: String? = null,
+    val playlistOnly: Boolean = false,
+    @kotlinx.serialization.Transient val passwordProtected: Boolean = false,
+    @kotlinx.serialization.Transient val locked: Boolean = false,
 ) {
+    val restrictsPlayback: Boolean get() = playlistOnly || passwordProtected
+
     /** Kept in step with YouTube Music, or waiting for its copy to be made there. */
     val synced: Boolean get() = remoteId != null || privacy != null
 }
@@ -110,6 +115,7 @@ private data class LibraryDocument(
     val likedSyncOwner: String? = null,
     /** The liked ids this phone and YouTube Music last agreed on. */
     val likedSyncedIds: Set<String> = emptySet(),
+    val playlistPasswords: Map<String, PlaylistPassword> = emptyMap(),
 )
 
 /**
@@ -122,6 +128,10 @@ object LibraryStore {
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val doc = MutableStateFlow(LibraryDocument())
+    // Session unlocks and biometric opt-in never go into a library backup.
+    private val unlocked = mutableSetOf<String>()
+    private lateinit var localLockDirectory: File
+    private var lockGeneration = 0L
 
     private val _liked = MutableStateFlow<List<SongRef>>(emptyList())
     /** Newest like first. */
@@ -204,12 +214,17 @@ object LibraryStore {
     @OptIn(FlowPreview::class)
     fun init(context: Context) {
         val f = com.opentune.data.SavedFile(File(context.filesDir, "library.json"), "LibraryStore").also { saved = it }
+        localLockDirectory = File(context.noBackupFilesDir, "playlist-biometrics")
         // A library that won't read is kept aside, never saved over with an empty one.
         publish(f.read(LibraryDocument()) { json.decodeFromString(LibraryDocument.serializer(), it) })
         _ready.value = true
         scope.launch {
-            doc.drop(1).onEach { f.dirty = true }.debounce(800).collect { d ->
-                runCatching { f.write(json.encodeToString(LibraryDocument.serializer(), d)) }
+            doc.drop(1).onEach { f.dirty = true }.debounce(800).collect {
+                runCatching {
+                    synchronized(this@LibraryStore) {
+                        f.write(json.encodeToString(LibraryDocument.serializer(), doc.value))
+                    }
+                }
                     .onFailure { Log.w("LibraryStore", "Couldn't save the library", it) }
             }
         }
@@ -221,12 +236,95 @@ object LibraryStore {
     private fun publish(d: LibraryDocument) {
         doc.value = d
         _liked.value = d.liked
-        _playlists.value = d.playlists
+        publishPlaylists(d)
         _savedLists.value = d.savedLists
         _hidden.value = HiddenList(d.hiddenSongs, d.hiddenArtists)
         _disliked.value = d.disliked
         _smart.value = d.smartPlaylists
         LibraryArtwork.keep(d.liked.map { it.thumbnailUrl } + d.playlists.flatMap { p -> p.songs.map { it.thumbnailUrl } })
+    }
+
+    private fun publishPlaylists(d: LibraryDocument = doc.value) {
+        _playlists.value = d.playlists.map { p ->
+            when {
+                p.id !in d.playlistPasswords -> p
+                p.id in unlocked -> p.copy(passwordProtected = true)
+                else -> p.copy(songs = emptyList(), coverUrl = null, passwordProtected = true, locked = true)
+            }
+        }
+    }
+
+    @Synchronized
+    fun setPlaylistOnly(id: String, enabled: Boolean) {
+        if (playlist(id)?.let { !it.locked && it.spotifyId == null } != true) return
+        editPlaylist(id) { it.copy(playlistOnly = enabled) }
+    }
+
+    fun isPlaylistProtected(id: String): Boolean = id in doc.value.playlistPasswords
+
+    private fun biometricFile(id: String): File =
+        File(localLockDirectory, UUID.nameUUIDFromBytes(id.toByteArray()).toString())
+
+    fun playlistBiometricEnabled(id: String): Boolean =
+        isPlaylistProtected(id) && biometricFile(id).isFile
+
+    /** Call off the UI thread: password hashing is intentionally expensive. */
+    fun protectPlaylist(id: String, password: CharArray, biometrics: Boolean): Boolean {
+        val credential = PlaylistPassword.create(password)
+        synchronized(this) {
+            val p = playlist(id) ?: return false
+            if (p.passwordProtected || p.spotifyId != null) return false
+            if (biometrics) {
+                localLockDirectory.mkdirs()
+                check(biometricFile(id).isFile || biometricFile(id).createNewFile())
+            } else {
+                biometricFile(id).delete()
+            }
+            unlocked.remove(id)
+            update { it.copy(playlistPasswords = it.playlistPasswords + (id to credential)) }
+            saved?.dirty = true
+            flush()
+            return true
+        }
+    }
+
+    /** Call off the UI thread. A backgrounded or cancelled attempt cannot unlock a playlist. */
+    fun unlockPlaylist(id: String, password: CharArray): Boolean {
+        val (credential, generation) = synchronized(this) {
+            (doc.value.playlistPasswords[id] ?: return false) to lockGeneration
+        }
+        if (!credential.matches(password) || Thread.currentThread().isInterrupted) return false
+        synchronized(this) {
+            if (lockGeneration != generation || doc.value.playlistPasswords[id] != credential) return false
+            return grantPlaylistAccess(id)
+        }
+    }
+
+    @Synchronized
+    fun unlockPlaylistWithBiometrics(id: String): Boolean =
+        playlistBiometricEnabled(id) && grantPlaylistAccess(id)
+
+    private fun grantPlaylistAccess(id: String): Boolean {
+        unlocked.add(id)
+        publishPlaylists()
+        return true
+    }
+
+    @Synchronized
+    fun relockPlaylists(id: String? = null) {
+        lockGeneration++
+        if (id == null) unlocked.clear() else unlocked.remove(id)
+        publishPlaylists()
+    }
+
+    @Synchronized
+    fun removePlaylistProtection(id: String) {
+        if (id !in unlocked) return
+        biometricFile(id).delete()
+        unlocked.remove(id)
+        update { it.copy(playlistPasswords = it.playlistPasswords - id) }
+        saved?.dirty = true
+        flush()
     }
 
     // Locked: the playlist sync writes back from its own thread.
@@ -287,7 +385,7 @@ object LibraryStore {
     /** Makes a YouTube Music copy of a playlist that so far lived only here, songs and all, and links the two. */
     @Synchronized
     fun saveToAccount(id: String, privacy: PlaylistPrivacy) {
-        if (playlist(id)?.synced != false) return
+        if (playlist(id)?.let { !it.synced && !it.locked } != true) return
         editPlaylist(id) { it.copy(privacy = privacy) }
         PlaylistSync.enqueue(PlaylistEdit(PlaylistEdit.Kind.CREATE, id))
     }
@@ -295,7 +393,9 @@ object LibraryStore {
     /** Adds [songs] in order, skipping any already there; one write for the lot. */
     @Synchronized
     fun addAllToPlaylist(id: String, songs: List<Song>) {
-        if (playlist(id)?.spotifyId != null) {
+        val target = playlist(id) ?: return
+        if (target.locked) return
+        if (target.spotifyId != null) {
             com.opentune.data.Pills.info("Edit this playlist in Spotify")
             return
         }
@@ -366,7 +466,7 @@ object LibraryStore {
     /** Puts [removed] back at its place. Called late, the removal already reached YouTube Music, so it's added there again. */
     @Synchronized
     fun undoRemove(removed: Removed) {
-        val p = playlist(removed.playlistId) ?: return
+        val p = playlist(removed.playlistId)?.takeUnless { it.locked } ?: return
         val at = removed.index.coerceIn(0, p.songs.size)
         val songs = p.songs.toMutableList().apply { add(at, removed.song) }
         editPlaylist(removed.playlistId) { it.copy(songs = songs) }
@@ -394,7 +494,7 @@ object LibraryStore {
 
     @Synchronized
     fun renamePlaylist(id: String, name: String) {
-        val old = playlist(id)?.name ?: return
+        val old = playlist(id)?.takeUnless { it.locked }?.name ?: return
         val new = name.trim().ifEmpty { old }
         if (new == old) return
         editPlaylist(id) { it.copy(name = new) }
@@ -404,7 +504,7 @@ object LibraryStore {
     /** Who can see a linked playlist's copy on YouTube Music. */
     @Synchronized
     fun setPlaylistPrivacy(id: String, privacy: PlaylistPrivacy) {
-        val p = playlist(id)?.takeIf { it.synced } ?: return
+        val p = playlist(id)?.takeIf { it.synced && !it.locked } ?: return
         if (p.privacy == privacy) return
         editPlaylist(id) { it.copy(privacy = privacy) }
         mirror(id) { remote -> PlaylistEdit(PlaylistEdit.Kind.PRIVACY, id, remote, privacy = privacy) }
@@ -416,14 +516,21 @@ object LibraryStore {
      */
     @Synchronized
     fun deletePlaylist(id: String, alsoOnAccount: Boolean = false) {
-        val p = playlist(id)
-        update { d -> d.copy(playlists = d.playlists.filterNot { it.id == id }) }
-        if (p != null && p.synced && (alsoOnAccount || p.remoteId == null)) {
+        val p = playlist(id)?.takeUnless { it.locked } ?: return
+        if (p.passwordProtected) {
+            biometricFile(id).delete()
+            unlocked.remove(id)
+        }
+        update { d -> d.copy(playlists = d.playlists.filterNot { it.id == id }, playlistPasswords = d.playlistPasswords - id) }
+        if (p.synced && (alsoOnAccount || p.remoteId == null)) {
             PlaylistSync.enqueue(PlaylistEdit(PlaylistEdit.Kind.DELETE, id, p.remoteId))
         }
     }
 
     fun playlist(id: String): LocalPlaylist? = _playlists.value.firstOrNull { it.id == id }
+
+    // Metadata for delivering writes the user explicitly made before the playlist was relocked.
+    internal fun playlistForSync(id: String): LocalPlaylist? = doc.value.playlists.firstOrNull { it.id == id }
 
     /**
      * The copy of Spotify playlist [spotifyId]: made at the end of the list the
@@ -455,7 +562,7 @@ object LibraryStore {
 
     /** Queues the edit [make] builds, when playlist [id] is kept in step with YouTube Music. */
     private fun mirror(id: String, make: (remoteId: String?) -> PlaylistEdit) {
-        val p = playlist(id)?.takeIf { it.synced } ?: return
+        val p = playlistForSync(id)?.takeIf { it.synced } ?: return
         PlaylistSync.enqueue(make(p.remoteId))
     }
 
@@ -498,7 +605,7 @@ object LibraryStore {
     @Synchronized
     internal fun rememberEntries(id: String, setVideoIds: Map<String, String>) {
         if (setVideoIds.isEmpty()) return
-        val p = playlist(id) ?: return
+        val p = playlistForSync(id) ?: return
         if (p.songs.none { s -> setVideoIds[s.videoId]?.let { it != s.setVideoId } == true }) return
         editPlaylist(id) { pl -> pl.copy(songs = pl.songs.map { s -> setVideoIds[s.videoId]?.let { s.copy(setVideoId = it) } ?: s }) }
     }
@@ -511,7 +618,7 @@ object LibraryStore {
     @Synchronized
     internal fun applyRemote(id: String, remote: com.opentune.data.RemotePlaylist) {
         if (PlaylistSync.isWaiting(id)) return
-        val p = playlist(id)?.takeIf { it.remoteId != null } ?: return
+        val p = playlistForSync(id)?.takeIf { it.remoteId != null && !it.playlistOnly && !isPlaylistProtected(id) } ?: return
         val merged = PlaylistMerge.pull(p, remote)
         if (merged != p) editPlaylist(id) { merged }
     }
@@ -525,7 +632,23 @@ object LibraryStore {
     internal fun applyLikedSync(owner: String, startedWith: List<SongRef>, liked: List<SongRef>, agreed: Set<String>) =
         update { d -> d.copy(liked = keepLikedEdits(startedWith, d.liked, liked), likedSyncOwner = owner, likedSyncedIds = agreed) }
 
-    fun exportJson(): JsonElement = json.encodeToJsonElement(LibraryDocument.serializer(), doc.value)
+    fun exportJson(): JsonElement {
+        val d = doc.value
+        return json.encodeToJsonElement(LibraryDocument.serializer(), d.copy(
+            playlists = d.playlists.filterNot { it.id in d.playlistPasswords },
+            playlistPasswords = emptyMap(),
+        ))
+    }
 
-    fun importJson(element: JsonElement) = publish(json.decodeFromJsonElement(LibraryDocument.serializer(), element))
+    @Synchronized
+    fun importJson(element: JsonElement) {
+        val incoming = json.decodeFromJsonElement(LibraryDocument.serializer(), element)
+        val before = doc.value
+        val protected = before.playlists.filter { it.id in before.playlistPasswords }
+        relockPlaylists()
+        publish(incoming.copy(
+            playlists = incoming.playlists.filterNot { it.id in before.playlistPasswords } + protected,
+            playlistPasswords = before.playlistPasswords,
+        ))
+    }
 }

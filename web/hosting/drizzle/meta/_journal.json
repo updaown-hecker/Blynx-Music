@@ -1,5 +1,20 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "entries": [{"idx":0,"version":"6","when":1794780540000,"tag":"0000_blynx_sync","breakpoints":true}]
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794780540000,
+      "tag": "0000_blynx_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794859453209,
+      "tag": "0001_android_backup",
+      "breakpoints": true
+    }
+  ]
 }

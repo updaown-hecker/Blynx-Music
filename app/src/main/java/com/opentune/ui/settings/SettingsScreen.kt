@@ -529,6 +529,8 @@ private fun settingsSections(
     var audioAddons by remember { mutableStateOf(false) }
     if (audioAddons) AudioAddonsSheet { audioAddons = false }
     var folderDialog by remember { mutableStateOf(false) }
+    var cloudBackupDialog by remember { mutableStateOf(false) }
+    if (cloudBackupDialog) AndroidCloudBackupDialog { cloudBackupDialog = false }
     var cacheBytes by remember { mutableLongStateOf(0L) }
     var message by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { cacheBytes = withContext(Dispatchers.IO) { AudioCache.usedBytes(context) } }
@@ -1683,8 +1685,11 @@ private fun settingsSections(
                 Entry("Wrapped", "wrapped story year review stats recap top artists") {
                     NavRow("Wrapped", onOpenWrapped, summary = "Your listening as an animated story", icon = Icons.Rounded.AutoAwesome)
                 },
+                Entry("Cloud backup", "sync restore backup account settings playlists") {
+                    NavRow("Cloud backup", { cloudBackupDialog = true }, summary = "Back up or restore Android data at music.blynx.vip", icon = Icons.Rounded.Upload)
+                },
                 Entry("Export data", "backup json") {
-                    NavRow("Export data", { exporter.launchSafely(context, "opentune-backup.json") }, summary = "Settings, history, likes and playlists, as one JSON file", icon = Icons.Rounded.Upload)
+                    NavRow("Export data", { exporter.launchSafely(context, "blynx-music-backup.json") }, summary = "Settings, history, likes and playlists, as one JSON file", icon = Icons.Rounded.Upload)
                 },
                 Entry("Import data", "restore json") {
                     NavRow("Import data", { importer.launchSafely(context, arrayOf("application/json")) }, summary = "Replaces the settings, history, likes and playlists on this device", icon = Icons.Rounded.Download)

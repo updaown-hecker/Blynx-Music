@@ -7,6 +7,12 @@ Blynx Music Android test build based on OpenTune.
 
 Open the downloaded APK and allow installation from the browser or file manager if Android asks. In Appearance, choose **Clear refraction**, **Original liquid**, or one of the other surface styles. Turn **Liquid Glass** off to disable optical refraction. **Reduce dynamic blur** also disables backdrop blur.
 
+## 1.2.7
+
+- **Settings → Cloud backup** saves settings, playlists, likes and listening history to your account on [music.blynx.vip](https://music.blynx.vip/backup/).
+- Connect the app in your browser once. The app backs up changes while open. After a reinstall, connect to the same account and choose **Restore backup**.
+- The web page can save or download a compatible Android export. Account credentials, password-protected playlists and downloaded audio stay on the device.
+
 ## 1.2.6
 
 - Open a playlist you created, tap **⋯**, then **Lock playlist**.

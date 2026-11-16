@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="/mark.svg">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/backup/backup.js"></script>
+  <title>Android backup · Blynx Music</title>
+</head>
+<body>
+  <header class="header"><div class="wrap nav"><a class="brand" href="/"><img src="/mark.svg" width="34" height="34" alt="">Blynx Music</a></div></header>
+  <main class="wrap">
+    <section class="card detail" style="margin:3rem auto;max-width:42rem;padding:clamp(1rem,4vw,2.5rem)">
+      <h1>Android backup</h1>
+      <p>Save your Blynx Music settings, playlists, likes and listening history to your account.</p>
+      <p id="status" role="status">Checking your account…</p>
+      <a class="button primary" id="sign-in" href="/signin-with-chatgpt" target="_top" hidden>Sign in with ChatGPT</a>
+      <button class="button primary" id="connect" type="button" hidden>Connect Android</button>
+      <div id="files" hidden>
+        <a class="button" id="download" href="/api/android-backup" download hidden>Download backup</a>
+        <button class="button" id="upload" type="button">Upload Android export</button>
+        <input id="export-file" type="file" accept=".json,application/json" hidden>
+        <p>On your phone, use <strong>Settings → Export data</strong> to create a file or <strong>Import data</strong> to restore one.</p>
+      </div>
+    </section>
+  </main>
+  <style>[hidden]{display:none!important}</style>
+</body>
+</html>

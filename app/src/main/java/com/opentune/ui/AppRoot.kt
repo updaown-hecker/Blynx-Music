@@ -206,6 +206,7 @@ fun AppRoot(vm: PlayerViewModel) {
                 }
                 com.opentune.data.config.RemoteConfig.refresh()
                 com.opentune.data.addons.AddonRefresh.refresh()
+                com.opentune.ui.settings.AndroidCloudBackup.check(appContext.applicationContext)
                 kotlinx.coroutines.delay(5 * 60 * 1000L)
             }
         }

@@ -14,8 +14,8 @@ android {
         applicationId = "vip.blynx.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 108
-        versionName = "1.2.6"
+        versionCode = 109
+        versionName = "1.2.7"
         // This version's store changelog, shown as What's new when a release
         // goes out before the app's own notes for it are written.
         val changelog = rootProject.file("fastlane/metadata/android/en-US/changelogs/$versionCode.txt")

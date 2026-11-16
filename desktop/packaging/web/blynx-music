@@ -2,7 +2,7 @@
 # Blynx Music desktop launcher. Distributed under GPL-3.0-or-later.
 set -eu
 
-player_url=https://music.blynx.vip/player/#/home
+player_url='https://music.blynx.vip/player/?desktop=1#/home'
 extension_url=https://music.blynx.vip/player/#/extension
 youtube_url=https://music.youtube.com/
 browser=${BLYNX_BROWSER:-}

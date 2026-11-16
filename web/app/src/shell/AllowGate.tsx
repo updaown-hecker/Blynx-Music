@@ -69,9 +69,9 @@ function useAddonAccess(present: boolean) {
  * can be browsed while setup is deferred. Phones skip it: their browsers can't run
  * the extension, and the shell already points them at the app.
  */
-export function useAllowGate(): { locked: boolean; gate: ReactNode } {
+export function useAllowGate(enabled = true): { locked: boolean; gate: ReactNode } {
   const extension = useExtension();
-  const present = extension.state === 'present';
+  const present = enabled && extension.state === 'present';
   const lyrics = useHostAccess(LYRIC_EXTENSION_ORIGINS, present ? extension.extension : null);
   const addons = useAddonAccess(present);
   const [asked, setAsked] = useState<'lyrics' | 'addons' | null>(null);
@@ -90,7 +90,7 @@ export function useAllowGate(): { locked: boolean; gate: ReactNode } {
   const steps = [extensionStep, lyricsStep, addonsStep];
   const allDone = steps.every((s) => s === 'done');
   // Someone who has been through it before isn't shown it while the checks run, only if one fails.
-  const needed = mobile ? false : steps.includes('todo') || (!rememberedDone() && !allDone);
+  const needed = !enabled || mobile ? false : steps.includes('todo') || (!rememberedDone() && !allDone);
 
   // Once open it stays open until "Start Listening", so the last step's tick is seen.
   const [open, setOpen] = useState(false);
@@ -99,7 +99,7 @@ export function useAllowGate(): { locked: boolean; gate: ReactNode } {
     if (needed) setOpen(true);
   }, [needed]);
   useEffect(() => {
-    if (mobile || extensionStep === 'checking') return;
+    if (!enabled || mobile || extensionStep === 'checking') return;
     if (allDone) remember(true);
     else if (steps.includes('todo')) remember(false);
   });
@@ -116,7 +116,7 @@ export function useAllowGate(): { locked: boolean; gate: ReactNode } {
       .catch((e: unknown) => setHint(e instanceof Error ? e.message : 'The extension couldn’t open its permission page.'));
   }, [addons.waiting]);
 
-  const shown = !deferred && (needed || open);
+  const shown = enabled && !deferred && (needed || open);
   if (!shown) return { locked: false, gate: null };
 
   return {

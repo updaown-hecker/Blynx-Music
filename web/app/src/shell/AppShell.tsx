@@ -18,6 +18,7 @@ import { MobileTopBar } from './MobileTopBar';
 import { PlayerBar } from './PlayerBar';
 import { SidePanel } from './SidePanel';
 import { useAllowGate } from './AllowGate';
+import { DesktopSignIn } from './DesktopSignIn';
 import { Appearance } from './Appearance';
 import { MobileDock } from './MobileDock';
 import { RoomNotice } from './RoomNotice';
@@ -25,6 +26,7 @@ import { ShortcutsHelp } from './ShortcutsHelp';
 import { Sidebar } from './Sidebar';
 
 const mobile = isMobileBrowser();
+const desktopLaunch = new URLSearchParams(window.location.search).get("desktop") === "1";
 
 // It carries am-lyrics; loaded the first time it opens, as the side panel's lyrics are.
 const FullScreenPlayer = lazy(() => import('./FullScreenPlayer').then((m) => ({ default: m.FullScreenPlayer })));
@@ -130,7 +132,7 @@ export function AppShell() {
   }, []);
   const extension = useExtension();
   // Locked behind the setup popup until the extension is in and allowed.
-  const { locked, gate } = useAllowGate();
+  const { locked, gate } = useAllowGate(!desktopLaunch);
   const bannerDismissed = useUi((s) => s.installBannerDismissed);
   const dismissBanner = useUi((s) => s.dismissInstallBanner);
   const fullScreen = useUi((s) => s.fullScreen);
@@ -204,6 +206,7 @@ export function AppShell() {
         </Suspense>
       )}
       {gate}
+      {desktopLaunch && <DesktopSignIn />}
     </div>
   );
 }

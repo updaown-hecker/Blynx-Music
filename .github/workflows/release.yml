@@ -3,7 +3,7 @@ name: Android test release
 on:
   push:
     branches: [main]
-    paths: ['app/build.gradle.kts']
+    paths: ['app/build.gradle.kts', '.github/workflows/release.yml']
   workflow_dispatch:
 
 permissions:
@@ -50,6 +50,8 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$apk"
             "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | sed -n '1p'
           done
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs \
+            "release/Blynx-Music-v$version-arm64-v8a.apk" | tee release/SIGNING-CERTIFICATE.txt
           tv="release/Blynx-Music-v$version-android-tv.apk"
           cp tv/build/outputs/apk/debug/tv-debug.apk "$tv"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$tv"
@@ -62,6 +64,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.apks.outputs.version }}
         run: |
-          gh release create "v$VERSION" release/*.apk release/SHA256SUMS.txt \
+          gh release create "v$VERSION" release/*.apk release/SHA256SUMS.txt release/SIGNING-CERTIFICATE.txt \
             --target "$GITHUB_SHA" --title "Blynx Music $VERSION (test build)" \
             --prerelease --notes-file docs/test-release-notes.md

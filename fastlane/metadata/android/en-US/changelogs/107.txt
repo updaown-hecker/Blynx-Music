@@ -1,0 +1,2 @@
+The Google button opens Android's installed-account picker.
+The manual YouTube Music sign-in always opens Google's interactive login form.

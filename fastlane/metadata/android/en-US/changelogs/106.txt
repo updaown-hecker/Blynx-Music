@@ -1,0 +1,2 @@
+The official Google sign-in button opens Android's Google account picker.
+Previously connected Blynx accounts can open directly. Email-and-password sign-in is still available.

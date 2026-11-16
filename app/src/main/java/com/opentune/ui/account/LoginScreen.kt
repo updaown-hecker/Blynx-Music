@@ -1,21 +1,29 @@
 package com.opentune.ui.account
 
+import android.accounts.AccountManager
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.net.Uri
 import android.graphics.Bitmap
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import com.opentune.ui.theme.Text
@@ -29,8 +37,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.opentune.R
 import com.opentune.data.account.AccountStore
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayCircle
@@ -41,16 +53,32 @@ private const val MUSIC_SIGN_IN_RETURN =
     "https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26next%3Dhttps%253A%252F%252Fmusic.youtube.com%252F"
 private const val MANUAL_SIGN_IN_URL =
     "https://accounts.google.com/ServiceLogin?ltmpl=music&service=youtube&passive=true&continue=$MUSIC_SIGN_IN_RETURN"
-private const val ACCOUNT_CHOOSER_URL =
-    "https://accounts.google.com/AccountChooser?service=youtube&continue=$MUSIC_SIGN_IN_RETURN"
-
-private enum class GoogleSignInMethod { AccountChooser, EmailAndPassword }
+private const val GOOGLE_ACCOUNT_TYPE = "com.google"
 
 @Composable
 fun LoginScreen(onDone: () -> Unit) {
-    var method by rememberSaveable { mutableStateOf<GoogleSignInMethod?>(null) }
-    val selected = method
-    if (selected == null) {
+    var browserOpen by rememberSaveable { mutableStateOf(false) }
+    var accountHint by rememberSaveable { mutableStateOf<String?>(null) }
+    var pickerUnavailable by rememberSaveable { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            val email = data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
+            if (!email.isNullOrBlank() && data?.getStringExtra(AccountManager.KEY_ACCOUNT_TYPE) == GOOGLE_ACCOUNT_TYPE) {
+                val saved = AccountStore.accounts.value.firstOrNull { it.email.equals(email, ignoreCase = true) }
+                if (saved != null) {
+                    AccountStore.switchTo(saved.id)
+                    onDone()
+                } else {
+                    accountHint = email
+                    browserOpen = true
+                }
+            } else {
+                pickerUnavailable = true
+            }
+        }
+    }
+    if (!browserOpen) {
         BackHandler(onBack = onDone)
         SignInPage(
             service = "YouTube Music",
@@ -68,27 +96,49 @@ fun LoginScreen(onDone: () -> Unit) {
                 ) {
                     Text("Connect YouTube Music", style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        "Choose an account on Google's page. Google will ask for any sign-in steps it needs.",
+                        "Choose a Google account from this device. Google may ask you to verify it when connecting for the first time.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(
-                        onClick = { method = GoogleSignInMethod.AccountChooser },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Continue with Google") }
+                    val googleButton = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+                        R.drawable.google_sign_in_dark
+                    } else R.drawable.google_sign_in_light
+                    // Google's unmodified 3x artwork with a 48 dp touch target.
+                    Box(
+                        Modifier.align(Alignment.CenterHorizontally).size(180.dp, 48.dp)
+                            .clickable(role = Role.Button) {
+                                pickerUnavailable = false
+                                try {
+                                    picker.launch(AccountManager.newChooseAccountIntent(
+                                        null, null, arrayOf(GOOGLE_ACCOUNT_TYPE), null, null, null, null,
+                                    ))
+                                } catch (_: ActivityNotFoundException) {
+                                    pickerUnavailable = true
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painterResource(googleButton), contentDescription = "Sign in with Google",
+                            modifier = Modifier.size(180.dp, 40.dp),
+                        )
+                    }
+                    if (pickerUnavailable) {
+                        Text("The Google account picker is unavailable. Use email and password below.")
+                    }
                     TextButton(
-                        onClick = { method = GoogleSignInMethod.EmailAndPassword },
+                        onClick = { accountHint = null; browserOpen = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Sign in with email and password") }
                 }
             }
         }
     } else {
-        key(selected) {
+        key(accountHint) {
             GoogleMusicSignInBrowser(
-                method = selected,
+                accountHint = accountHint,
                 onSignedIn = onDone,
-                onBack = { method = null },
-                onManualSignIn = { method = GoogleSignInMethod.EmailAndPassword },
+                onBack = { browserOpen = false; accountHint = null },
+                onManualSignIn = { accountHint = null },
             )
         }
     }
@@ -98,7 +148,7 @@ fun LoginScreen(onDone: () -> Unit) {
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun GoogleMusicSignInBrowser(
-    method: GoogleSignInMethod,
+    accountHint: String?,
     onSignedIn: () -> Unit,
     onBack: () -> Unit,
     onManualSignIn: () -> Unit,
@@ -132,7 +182,7 @@ private fun GoogleMusicSignInBrowser(
         gives = "Your playlists, liked songs, history and recommendations",
         loading = loading,
         onBack = { leave(onBack) },
-        alternateSignIn = if (method == GoogleSignInMethod.AccountChooser) {
+        alternateSignIn = if (accountHint != null) {
             { leave(onManualSignIn) }
         } else null,
         unavailable = if (unavailable) {
@@ -163,7 +213,7 @@ private fun GoogleMusicSignInBrowser(
                     var sentToMusic = false
                     fun check(view: WebView, url: String?) {
                         if (gone.get() || left.get() || finished) return
-                        val page = url?.let(android.net.Uri::parse) ?: return
+                        val page = url?.let(Uri::parse) ?: return
                         if (page.scheme != "https") return
                         val host = page.host?.lowercase() ?: return
                         if (host != "youtube.com" && !host.endsWith(".youtube.com")) return
@@ -205,17 +255,16 @@ private fun GoogleMusicSignInBrowser(
                         }
                     }
                     web.set(this)
-                    if (method == GoogleSignInMethod.AccountChooser) {
-                        // Retain the provider session so Google can offer previously used accounts.
-                        loadUrl(ACCOUNT_CHOOSER_URL)
-                    } else {
-                        // Keep the original fresh sign-in, including its Spotify cookie restoration.
-                        com.opentune.ui.spotify.SpotifyConnection.keepingSpotify { done ->
-                            CookieManager.getInstance().removeAllCookies { removed ->
-                                done.onReceiveValue(removed)
-                                main.post {
-                                    if (!gone.get() && !left.get()) loadUrl(MANUAL_SIGN_IN_URL)
-                                }
+                    // A fresh session prevents a different cached Google account from taking over.
+                    // The selected address is only a hint to Google's own page.
+                    val signInUrl = accountHint?.let {
+                        Uri.parse(MANUAL_SIGN_IN_URL).buildUpon().appendQueryParameter("Email", it).build().toString()
+                    } ?: MANUAL_SIGN_IN_URL
+                    com.opentune.ui.spotify.SpotifyConnection.keepingSpotify { done ->
+                        CookieManager.getInstance().removeAllCookies { removed ->
+                            done.onReceiveValue(removed)
+                            main.post {
+                                if (!gone.get() && !left.get()) loadUrl(signInUrl)
                             }
                         }
                     }

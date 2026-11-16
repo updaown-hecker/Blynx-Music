@@ -7,6 +7,17 @@ Blynx Music Android test build based on OpenTune.
 
 Open the downloaded APK and allow installation from the browser or file manager if Android asks. In Appearance, choose **Clear refraction**, **Original liquid**, or one of the other surface styles. Turn **Liquid Glass** off to disable optical refraction. **Reduce dynamic blur** also disables backdrop blur.
 
+## 1.2.1
+
+- Branded labels in the phone’s audio and listening history settings, the Wear OS source, and add-on verification messages.
+- Fixes the QR scanner’s invalid-code message and verifies Blynx Music in the Discord listening card tests.
+
+## 1.2.0
+
+- Listen Together invites, sign-in QR codes and TV remote setup now use music.blynx.vip.
+- Android TV companion uses Blynx Music branding and has its own APK.
+- Earlier room codes and pairing links are still accepted.
+
 ## 1.1.0
 
 - Custom Blynx lynx-and-play launcher icon, matching splash and Home mark, and plum-and-citron Daylist styling.

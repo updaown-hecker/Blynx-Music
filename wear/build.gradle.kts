@@ -18,7 +18,7 @@ android {
     compileSdkVersion("android-37.0")
 
     defaultConfig {
-        applicationId = "com.opentune.wear"
+        applicationId = "vip.blynx.music.wear"
         // Wear OS 3 and later.
         minSdk = 30
         targetSdk = 36

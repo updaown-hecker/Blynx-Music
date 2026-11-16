@@ -1,0 +1,3 @@
+Blynx Music labels in audio settings, listening history, and add-on verification.
+Fixed wording for invalid QR codes.
+Listen Together and device setup use music.blynx.vip.

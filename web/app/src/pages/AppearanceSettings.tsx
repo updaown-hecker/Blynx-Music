@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { useLiquidGlass } from '@/lib/liquidGlass';
-import { ACCENTS, PLAYER_STYLES, useAppearance } from '@/state/appearance';
+import { ACCENTS, MAX_LIQUID_GLASS_BLUR, PLAYER_STYLES, useAppearance } from '@/state/appearance';
 import { Toggle } from './IntegrationSettings';
 import { settingsUi } from './settingsStyles';
 
@@ -18,6 +18,29 @@ function Segmented<T extends string>({ title, value, options, onChange }: { titl
         ))}
       </div>
     </div>
+  );
+}
+
+function GlassSlider({ name, value, max, unit, onChange }: {
+  name: string;
+  value: number;
+  max: number;
+  unit: '%' | 'px';
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="ot-glass-slider">
+      <span>{name}</span>
+      <span className="ot-glass-slider-value" aria-hidden="true">{value}{unit}</span>
+      <input
+        type="range"
+        min={0}
+        max={max}
+        value={value}
+        aria-valuetext={unit === '%' ? `${value} percent` : `${value} pixels`}
+        onChange={(event) => onChange(event.currentTarget.valueAsNumber)}
+      />
+    </label>
   );
 }
 
@@ -64,6 +87,10 @@ export function AppearanceSettings() {
           checked={a.liquidGlass}
           onChange={(liquidGlass) => a.update({ liquidGlass })}
         />
+        <fieldset className="ot-glass-sliders" aria-label="Glass adjustments" disabled={!a.liquidGlass}>
+          <GlassSlider name="Opacity" value={a.liquidGlassOpacity} max={100} unit="%" onChange={(liquidGlassOpacity) => a.update({ liquidGlassOpacity })} />
+          <GlassSlider name="Blur" value={a.liquidGlassBlur} max={MAX_LIQUID_GLASS_BLUR} unit="px" onChange={(liquidGlassBlur) => a.update({ liquidGlassBlur })} />
+        </fieldset>
         <GlassPreview />
       </section>
       <section className={settingsUi.group} aria-label="Appearance">

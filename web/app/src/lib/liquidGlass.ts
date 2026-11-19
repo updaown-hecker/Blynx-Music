@@ -212,6 +212,7 @@ export function useLiquidGlass<T extends HTMLElement>(bezel = 22, depth = 22): (
       if (held) release(held);
       held = null;
       node.style.removeProperty('--liquid-filter');
+      node.style.removeProperty('--liquid-radius');
       delete node.dataset.liquid;
     };
     const apply = () => {
@@ -229,6 +230,7 @@ export function useLiquidGlass<T extends HTMLElement>(bezel = 22, depth = 22): (
         node.style.setProperty('--liquid-filter', `url(#${filters.get(key)!.id})`);
       }
       if (source) {
+        node.style.setProperty('--liquid-radius', `${radius}px`);
         if (!canvas) {
           canvas = document.createElement('canvas');
           canvas.className = 'ot-glass-artwork';

@@ -433,12 +433,12 @@
 /* Keep the lens behind the controls. Other browsers can warp the artwork
    layer independently of the softly blurred page behind it. */
 .glass-pill[data-liquid]::before, .ot-arrow[data-liquid] {
-  -webkit-backdrop-filter: blur(5px) saturate(1.22);
-  backdrop-filter: blur(5px) saturate(1.22);
-  background-color: color-mix(in srgb, var(--glassMaterialBackground) 36%, transparent);
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(1.22);
+  backdrop-filter: blur(var(--liquid-blur)) saturate(1.22);
+  background-color: color-mix(in srgb, var(--pageBG) var(--liquid-opacity), transparent);
 }
 .glass-pill[data-liquid="native"]::before, .ot-arrow[data-liquid="native"] {
-  backdrop-filter: var(--liquid-filter) blur(1.5px) saturate(1.12);
+  backdrop-filter: var(--liquid-filter) blur(var(--liquid-blur)) saturate(1.12);
 }
 .glass-pill[data-liquid]::before {
   background-image: linear-gradient(158deg, rgb(255 255 255 / .14), transparent 46%, rgb(255 255 255 / .06));
@@ -452,8 +452,9 @@
   height: 100%;
   border-radius: inherit;
   pointer-events: none;
-  filter: var(--liquid-filter);
-  opacity: .87;
+  clip-path: inset(0 round var(--liquid-radius));
+  filter: var(--liquid-filter) blur(var(--liquid-blur));
+  opacity: calc(100% - var(--liquid-opacity));
 }
 .glass-pill[data-liquid]::after, .ot-arrow[data-liquid]::after {
   content: '';
@@ -464,6 +465,34 @@
   opacity: 1;
   box-shadow: inset 1.25px 1.25px 0 -.5px #ffffffb3, inset -1.5px -1.5px 0 -.5px #ffffff50,
     inset 0 0 14px #ffffff24, inset 0 0 0 .5px #26213433;
+}
+.ot-glass-sliders {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-inline-size: 0;
+  margin: 0 12px 12px;
+  padding: 8px 4px;
+  border: 0;
+}
+.ot-glass-slider {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  font-size: .875rem;
+}
+.ot-glass-slider-value { color: var(--systemSecondary); font-variant-numeric: tabular-nums; }
+.ot-glass-slider input {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--keyColor);
+  cursor: pointer;
+}
+.ot-glass-slider input:disabled { cursor: default; }
+@media (max-width: 380px) {
+  .ot-glass-sliders { grid-template-columns: 1fr; gap: 4px; }
 }
 .ot-glass-preview {
   position: relative;

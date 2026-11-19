@@ -211,16 +211,6 @@ fun AppRoot(vm: PlayerViewModel) {
             }
         }
     }
-    LaunchedEffect(lifecycle, appContext.applicationContext) {
-        val context = appContext.applicationContext
-        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
-            kotlinx.coroutines.delay(45_000L)
-            while (true) {
-                com.opentune.ui.settings.AndroidCloudBackup.check(context)
-                kotlinx.coroutines.delay(5 * 60 * 1000L)
-            }
-        }
-    }
     // After an update, once: what's changed.
     var whatsNew by remember { mutableStateOf<List<Pair<String, List<com.opentune.ui.components.WhatsNew.Note>>>>(emptyList()) }
     LaunchedEffect(Unit) { whatsNew = com.opentune.ui.components.WhatsNew.due(appContext, com.opentune.BuildConfig.VERSION_NAME) }

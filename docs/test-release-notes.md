@@ -1,3 +1,8 @@
+## Android 1.2.9
+
+- Automatic cloud backups run after you leave the app and periodically when Android allows background work.
+- Active playback continues when you swipe Blynx Music out of Recents. The stop-on-close switch remains available in Settings.
+
 ## Android 1.2.8
 
 - Cloud backup waits until the app has been open for 45 seconds. Unchanged data skips the automatic export, and manual backup and restore remain available.

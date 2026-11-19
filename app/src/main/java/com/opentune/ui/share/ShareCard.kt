@@ -54,7 +54,7 @@ object ShareCard {
 
     /** Shares [song]'s link with its card attached; just the link if the card can't be made. */
     fun share(context: Context, song: Song, positionMs: Long = 0, durationMs: Long = 0) {
-        val link = "https://music.youtube.com/watch?v=${song.videoId}"
+        val link = ListShare.songLink(song)
         scope.launch {
             val bitmap = runCatching {
                 val cover = loadImage(context, song.thumbnailUrl, SIZE)

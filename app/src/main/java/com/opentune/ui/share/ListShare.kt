@@ -10,17 +10,23 @@ import kotlinx.coroutines.withContext
 /** Sharing an album or playlist: a link for YouTube Music's own, the songs themselves for one made in the app. */
 object ListShare {
     /**
-     * Where [browseId] opens on YouTube Music, and in OpenTune for anyone who
-     * has it: playlists as playlist?list=, albums and the rest as browse/.
+     * A Blynx link for a playlist, album, or other browsable collection.
      */
     fun linkFor(browseId: String): String = when {
         browseId.startsWith("VL") || browseId.startsWith("PL") || browseId.startsWith("OLAK") || browseId.startsWith("RD") ->
             playlistLink(browseId)
-        else -> "https://music.youtube.com/browse/$browseId"
+        else -> "https://music.blynx.vip/share/?browse=${encode(browseId)}"
     }
 
     /** A YouTube Music playlist's address, from its id with or without the `VL` it's browsed under. */
-    fun playlistLink(playlistId: String): String = "https://music.youtube.com/playlist?list=${playlistId.removePrefix("VL")}"
+    fun playlistLink(playlistId: String): String = "https://music.blynx.vip/share/?playlist=${encode(playlistId.removePrefix("VL"))}"
+
+    internal fun songLink(song: Song): String {
+        val query = listOf(song.title, song.artist).filter { it.isNotBlank() }.joinToString(" ").take(180)
+        return "https://music.blynx.vip/share/?song=${encode(song.videoId)}&q=${encode(query)}"
+    }
+
+    private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8")
 
     fun shareList(context: Context, title: String, browseId: String, covers: List<String?> = emptyList(), subtitle: String? = null) =
         send(context, "$title\n${linkFor(browseId)}", title, covers, subtitle)
@@ -42,7 +48,7 @@ object ListShare {
         songs.take(MAX_SONGS).forEachIndexed { i, s ->
             append('\n').append(i + 1).append(". ").append(s.title)
             if (s.artist.isNotBlank()) append(" – ").append(s.artist)
-            append("\nhttps://music.youtube.com/watch?v=").append(s.videoId)
+            append('\n').append(songLink(s))
         }
         if (songs.size > MAX_SONGS) append("\n\n…and ").append(songs.size - MAX_SONGS).append(" more")
         append("\n\nShared from Blynx Music")

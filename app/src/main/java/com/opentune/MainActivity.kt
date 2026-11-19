@@ -5,13 +5,10 @@ import androidx.compose.runtime.getValue
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
@@ -19,7 +16,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import com.opentune.data.account.AccountStore
 import androidx.compose.animation.togetherWith
 import com.opentune.data.settings.AppSettings
@@ -74,33 +70,27 @@ class MainActivity : ComponentActivity() {
             OpenTuneTheme(theme, artworkSeed = rememberArtworkSeed(song?.thumbnailUrl)) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     androidx.compose.foundation.layout.Box {
-                    // More than two releases behind, the app is only its update screen until it's updated.
-                    val required by com.opentune.data.UpdateLock.required.collectAsState()
-                    val behind by com.opentune.data.UpdateLock.behind.collectAsState()
-                    LaunchedEffect(required) { if (required != null && vm.isPlaying.value) vm.togglePlayPause() }
-                    if (required != null) com.opentune.ui.settings.UpdateRequiredScreen(required!!, behind) else {
-                    // A fresh install's welcome comes first; Home, built after it, starts from the picks.
-                    androidx.compose.animation.AnimatedContent(
-                        ui.welcome == WelcomeState.DUE,
-                        transitionSpec = {
-                            if (ui.reduceAnimation) {
-                                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)) togetherWith
-                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
-                            } else {
-                                (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(320, delayMillis = 80)) +
-                                    androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(420), initialScale = 0.96f)) togetherWith
-                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+                        // A fresh install's welcome comes first; Home, built after it, starts from the picks.
+                        androidx.compose.animation.AnimatedContent(
+                            ui.welcome == WelcomeState.DUE,
+                            transitionSpec = {
+                                if (ui.reduceAnimation) {
+                                    androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)) togetherWith
+                                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+                                } else {
+                                    (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(320, delayMillis = 80)) +
+                                        androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(420), initialScale = 0.96f)) togetherWith
+                                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+                                }
+                            },
+                            label = "welcome",
+                        ) { welcome ->
+                            val page: @androidx.compose.runtime.Composable () -> Unit = {
+                                if (welcome) WelcomeScreen(onDone = {}) else AppRoot(vm)
                             }
-                        },
-                        label = "welcome",
-                    ) { welcome ->
-                        val page: @androidx.compose.runtime.Composable () -> Unit = {
-                            if (welcome) WelcomeScreen(onDone = {}) else AppRoot(vm)
+                            page()
                         }
-                        page()
-                    }
-                    }
-                    com.opentune.ui.account.ConfirmPairing()
+                        com.opentune.ui.account.ConfirmPairing()
                     }
                 }
             }
@@ -116,8 +106,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launchWhenStarted {
             com.opentune.data.addons.AddonRefresh.refresh()
         }
-        // Whether this version is still allowed to run (UpdateLock), at most once an hour.
-        lifecycleScope.launch { com.opentune.data.UpdateLock.refresh(this@MainActivity) }
         // Playlist changes that couldn't reach YouTube Music last time try again.
         if (com.opentune.data.library.PlaylistSync.pending.value.isNotEmpty()) com.opentune.data.library.PlaylistSync.flush()
     }

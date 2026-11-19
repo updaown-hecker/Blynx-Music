@@ -200,13 +200,23 @@ fun AppRoot(vm: PlayerViewModel) {
         lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
             com.opentune.data.Usage.active()
             com.opentune.ui.components.Support.usedToday(appContext)
+            kotlinx.coroutines.delay(8_000L)
             while (true) {
                 if (com.opentune.data.settings.AppSettings.ui.value.checkForUpdates && update == null) {
                     update = com.opentune.data.UpdateCheck.checkIfDue(appContext)
                 }
                 com.opentune.data.config.RemoteConfig.refresh()
                 com.opentune.data.addons.AddonRefresh.refresh()
-                com.opentune.ui.settings.AndroidCloudBackup.check(appContext.applicationContext)
+                kotlinx.coroutines.delay(5 * 60 * 1000L)
+            }
+        }
+    }
+    LaunchedEffect(lifecycle, appContext.applicationContext) {
+        val context = appContext.applicationContext
+        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            kotlinx.coroutines.delay(45_000L)
+            while (true) {
+                com.opentune.ui.settings.AndroidCloudBackup.check(context)
                 kotlinx.coroutines.delay(5 * 60 * 1000L)
             }
         }

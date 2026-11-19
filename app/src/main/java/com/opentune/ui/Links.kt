@@ -38,16 +38,21 @@ object Links {
     const val ACTION_OPEN_PLAYER = "com.opentune.action.OPEN_PLAYER"
 
     fun parse(text: String?): LinkTarget? {
-        val raw = text?.let { Regex("""https?://\S+""").find(it)?.value } ?: return null
+        val raw = text?.let { Regex("""(?:https?://|blynxmusic://)\S+""").find(it)?.value } ?: return null
         val uri = runCatching { URI(raw) }.getOrNull() ?: return null
         val host = uri.host?.lowercase() ?: return null
-        if (host !in HOSTS) return null
         val query = uri.rawQuery.orEmpty().split('&').mapNotNull {
             val (k, v) = it.split('=', limit = 2).takeIf { p -> p.size == 2 } ?: return@mapNotNull null
             k to v
         }.toMap()
         val path = uri.path.orEmpty().trim('/').split('/').filter { it.isNotEmpty() }
         fun valid(id: String?) = id?.takeIf { ID.matches(it) }
+        val isBlynxShare = (host == "music.blynx.vip" && uri.scheme == "https" && path == listOf("share")) ||
+            (host == "share" && uri.scheme == "blynxmusic" && path.isEmpty())
+        if (isBlynxShare) return valid(query["song"])?.let(LinkTarget::Song)
+            ?: valid(query["playlist"])?.let { LinkTarget.Browse(playlistBrowseId(it)) }
+            ?: valid(query["browse"])?.let(LinkTarget::Browse)
+        if (host !in HOSTS) return null
         return when {
             host == "youtu.be" -> valid(path.firstOrNull())?.let(LinkTarget::Song)
             path.firstOrNull() == "watch" -> valid(query["v"])?.let(LinkTarget::Song)

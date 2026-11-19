@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.PackageInstaller
 import android.os.Build
 import android.provider.Settings
@@ -70,7 +71,7 @@ object Updater {
         dir.listFiles().orEmpty().filter { it.name != apk.name }.forEach { it.delete() }
         val target = File(dir, apk.name)
         if (target.isFile && target.length() > 0 && (apk.bytes <= 0 || target.length() == apk.bytes)) {
-            val listed = release.sums?.let { listedSum(it, apk.name) }
+            val listed = release.sums?.let { requireListedSum(it, apk.name) }
             if (listed == null || listed.equals(sha256(target), ignoreCase = true)) {
                 onProgress(1f)
                 return@withContext target
@@ -106,8 +107,8 @@ object Updater {
         }
         val actual = digest.digest().hex()
         release.sums?.let { sums ->
-            val listed = listedSum(sums, apk.name)
-            if (listed != null && !listed.equals(actual, ignoreCase = true)) {
+            val listed = requireListedSum(sums, apk.name)
+            if (!listed.equals(actual, ignoreCase = true)) {
                 part.delete()
                 throw IOException("The download is damaged (checksum mismatch)")
             }
@@ -116,10 +117,11 @@ object Updater {
         target
     }
 
-    private fun listedSum(sums: UpdateCheck.Asset, fileName: String): String? =
+    private fun requireListedSum(sums: UpdateCheck.Asset, fileName: String): String =
         Http.client.newCall(Request.Builder().url(sums.url).build()).execute().use { r ->
             if (!r.isSuccessful) throw IOException("Couldn't fetch the checksums (${r.code})")
-            expectedSum(r.body?.string().orEmpty(), fileName)
+            expectedSum(r.body?.string().orEmpty(), fileName)?.takeIf { it.matches(Regex("[0-9a-fA-F]{64}")) }
+                ?: throw IOException("No valid checksum for this APK")
         }
 
     private fun sha256(file: File): String {
@@ -145,10 +147,29 @@ object Updater {
 
     /** Starts installing [apk]; Android asks the user to confirm. */
     fun install(context: Context, apk: File) {
-        val installer = context.packageManager.packageInstaller
+        val packages = context.packageManager
+        @Suppress("DEPRECATION")
+        val flags = if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
+        @Suppress("DEPRECATION")
+        val current = packages.getPackageInfo(context.packageName, flags)
+        @Suppress("DEPRECATION")
+        val candidate = packages.getPackageArchiveInfo(apk.absolutePath, flags)
+            ?: throw IOException("Android could not read the downloaded APK")
+        val installedVersion = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(current)
+        if (candidate.packageName != context.packageName ||
+            androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(candidate) <= installedVersion
+        ) throw IOException("This file is not a newer version of Blynx Music")
+        @Suppress("DEPRECATION")
+        fun signers(info: android.content.pm.PackageInfo) =
+            (if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners else info.signatures).orEmpty().toSet()
+        val installedSigners = signers(current)
+        if (installedSigners.isEmpty() || signers(candidate) != installedSigners) {
+            throw IOException("This build uses a different signing key. Export your data before replacing the installed app.")
+        }
+        val installer = packages.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
             setAppPackageName(context.packageName)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
         }
         val id = installer.createSession(params)
         try {

@@ -43,6 +43,16 @@ internal object AndroidCloudBackup {
     private data class Device(val token: String, val revision: Long, val digest: String?)
     private data class Meta(val revision: Long, val savedAt: Long?)
     private data class Reply(val code: Int, val document: JsonObject?, val revision: Long?)
+    private class SnapshotState {
+        private val settings = AppSettings.state.value
+        private val library = LibraryStore.backupIdentity()
+        private val history = History.records.value
+
+        fun isCurrent(): Boolean = settings === AppSettings.state.value &&
+            library === LibraryStore.backupIdentity() && history === History.records.value
+    }
+
+    private var lastCheckedSnapshot: Pair<Device, SnapshotState>? = null
     private val mutex = Mutex()
     private val status = MutableStateFlow(Status())
     val state = status.asStateFlow()
@@ -50,6 +60,7 @@ internal object AndroidCloudBackup {
     suspend fun connectionLink(context: Context): String? = operation {
         val token = ByteArray(32).also(SecureRandom()::nextBytes).hex()
         write(context, Device(token, -1, null))
+        lastCheckedSnapshot = null
         status.value = Status(pending = true, detail = "Approve the connection in your browser.")
         WEB + "#" + sha(token)
     }
@@ -98,6 +109,7 @@ internal object AndroidCloudBackup {
         val response = request(device, "DELETE")
         check(response.code == 200 || response.code == 401)
         file(context).delete()
+        lastCheckedSnapshot = null
         status.value = Status()
     }
 
@@ -125,9 +137,16 @@ internal object AndroidCloudBackup {
     }
 
     private fun upload(context: Context, device: Device, remote: Meta, skipUnchanged: Boolean) {
+        val previous = lastCheckedSnapshot
+        if (skipUnchanged && remote.revision > 0 && previous?.first == device && previous.second.isCurrent()) {
+            status.value = Status(true, savedAt = remote.savedAt)
+            return
+        }
+        val state = SnapshotState()
         val document = snapshot()
         val digest = sha(document.toString())
         if (skipUnchanged && remote.revision > 0 && digest == device.digest) {
+            lastCheckedSnapshot = device to state
             status.value = Status(true, savedAt = remote.savedAt)
             return
         }
@@ -139,7 +158,9 @@ internal object AndroidCloudBackup {
         when (response.code) {
             200 -> {
                 val saved = requireNotNull(response.document)
-                write(context, device.copy(revision = saved.getValue("revision").jsonPrimitive.long, digest = digest))
+                val current = device.copy(revision = saved.getValue("revision").jsonPrimitive.long, digest = digest)
+                write(context, current)
+                lastCheckedSnapshot = current to state
                 status.value = Status(true, savedAt = saved["savedAt"]?.jsonPrimitive?.longOrNull)
             }
             409 -> status.value = Status(true, savedAt = remote.savedAt, detail = "Another device saved a newer backup. Restore it or confirm a replacement.")
@@ -229,5 +250,12 @@ internal object AndroidCloudBackup {
 
     private fun sha(text: String) = MessageDigest.getInstance("SHA-256").digest(text.encodeToByteArray()).hex()
 
-    private fun ByteArray.hex() = joinToString("") { "%02x".format(it.toInt() and 255) }
+    private fun ByteArray.hex(): String = buildString(size * 2) {
+        val digits = "0123456789abcdef"
+        for (byte in this@hex) {
+            val value = byte.toInt() and 255
+            append(digits[value ushr 4])
+            append(digits[value and 15])
+        }
+    }
 }

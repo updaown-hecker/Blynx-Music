@@ -68,6 +68,8 @@
         android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config">
 
+        <meta-data android:name="asset_statements" android:resource="@string/blynx_asset_statements" />
+
         <activity android:name=".AddonApprovalActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -139,6 +141,19 @@
                 <data android:path="/pair/" />
                 <data android:path="/together" />
                 <data android:path="/together/" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="music.blynx.vip" android:path="/share/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="blynxmusic" android:host="share" />
+                <data android:scheme="blynxmusic" android:host="open" />
             </intent-filter>
             <!-- "Play … on Blynx Music" from the Assistant. -->
             <intent-filter>

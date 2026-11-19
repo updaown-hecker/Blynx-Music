@@ -72,29 +72,35 @@ class TogetherScreenshotTest {
         }
         compose.onNodeWithText("You’re invited").assertExists()
         compose.onNodeWithText("K7QX-M2PA-9DTE").assertExists()
-        compose.onNodeWithText("Join").assertIsEnabled()
+        compose.onNodeWithText("Join room").assertIsEnabled()
         compose.onNodeWithText("Start a room").assertDoesNotExist()
         compose.onNodeWithText("Room code").assertDoesNotExist()
         assertNull("Opening an invite must not join before confirmation", Together.room.value)
     }
 
-    /** Start a room: the button turns into a spinner until the room opens, then the invite rises over it. */
-    @Test fun startingARoomOpensTheInvite() {
+    @Test fun startingARoomShowsAnErrorWhenPlaybackIsUnavailable() {
         try {
             shoot("together-starting") { TogetherScreen(PaddingValues(), null, onBack = {}) }
             compose.onNodeWithContentDescription("Your name").performTextInput("Asha")
             compose.onNodeWithText("Start a room").performClick()
-            compose.waitForIdle()
-            compose.onNodeWithText("Opening the room…").assertExists()
-            // No relays here, so the room opens when the wait runs out.
-            compose.mainClock.advanceTimeBy(6_000)
-            compose.waitForIdle()
             compose.onNodeWithText("Your room").assertExists()
-            compose.onNodeWithText("Invite friends to your room").assertExists()
-            compose.onNodeWithText("Share link").assertExists()
+            compose.onNodeWithText("Playback is starting. Close this screen and try again.").assertExists()
+            compose.onNodeWithText("Invite friends to your room").assertDoesNotExist()
         } finally {
             Together.leave()
         }
+    }
+
+    @Test fun aNewHostGetsTheInviteWhenTheRoomIsLive() {
+        val room = androidx.compose.runtime.mutableStateOf(
+            Together.Room(RoomCode.parse("K7QX-M2PA-9DTE")!!, hosting = true, myName = "Asha")
+        )
+        shoot("together-host-invite") { RoomView(room.value, onBack = {}, openInvite = true) }
+        compose.onNodeWithText("Connecting…").assertExists()
+        compose.onNodeWithText("Invite friends to your room").assertDoesNotExist()
+        compose.runOnIdle { room.value = room.value.copy(phase = Together.Phase.Live) }
+        compose.onNodeWithText("Invite friends to your room").assertExists()
+        compose.onNodeWithText("Share link").assertExists()
     }
 
     @Test fun room() {

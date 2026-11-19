@@ -43,6 +43,7 @@ import okhttp3.Request
  * such limit, and the APK's address is built from the release's file names.
  */
 object UpdateCheck {
+    private const val SITE_MANIFEST = "https://music.blynx.vip/updates/android.json"
     private const val LATEST = "https://api.github.com/repos/updaown-hecker/Blynx-Music/releases/latest"
     private const val LATEST_PAGE = "https://github.com/updaown-hecker/Blynx-Music/releases/latest"
     private const val DOWNLOADS = "https://github.com/updaown-hecker/Blynx-Music/releases/download"
@@ -81,6 +82,15 @@ object UpdateCheck {
 
     suspend fun check(): Result = withContext(Dispatchers.IO) {
         val abis = Build.SUPPORTED_ABIS.toList()
+        val site = runCatching {
+            val client = Http.client.newBuilder().callTimeout(6, TimeUnit.SECONDS).build()
+            client.newCall(Request.Builder().url(SITE_MANIFEST).build()).execute().use { response ->
+                if (!response.isSuccessful || response.request.url.host != "music.blynx.vip") return@use null
+                val body = response.peekBody(32_769).string().takeIf { it.length <= 32_768 } ?: return@use null
+                parseSiteRelease(Json.parseToJsonElement(body).jsonObject, abis)
+            }
+        }.getOrNull()
+        if (site != null) return@withContext compare(site)
         val viaApi = runCatching {
             Http.client.newCall(
                 Request.Builder().url(LATEST).header("Accept", "application/vnd.github+json").build(),
@@ -284,6 +294,24 @@ object UpdateCheck {
             Log.w(TAG, "Not allowed to notify", e)
         }
     }
+
+    internal fun parseSiteRelease(obj: JsonObject, abis: List<String>): Release? {
+        val release = parse(obj, abis) ?: return null
+        if (!Regex("[0-9]+[.][0-9]+[.][0-9]+").matches(release.version)) return null
+        val base = "https://music.blynx.vip/updates/files/v${release.version}/"
+        val validSums = release.sums?.takeIf { it.name == "SHA256SUMS.txt" && it.url == base + it.name }
+        val apk = release.apk?.takeIf {
+            validSums != null && versionedApkName(it.name, release.version) && it.url == base + it.name && it.bytes in 1..250_000_000
+        }
+        return release.copy(
+            page = "$RELEASES_PAGE/tag/v${release.version}",
+            apk = apk,
+            sums = validSums.takeIf { apk != null },
+        )
+    }
+
+    private fun versionedApkName(name: String, version: String): Boolean =
+        (BUILT_FOR + "universal").any { name == "Blynx-Music-v$version-$it.apk" }
 
     /** A GitHub release object, with the APK picked for [abis] (most preferred first). */
     internal fun parse(obj: JsonObject, abis: List<String>): Release? {

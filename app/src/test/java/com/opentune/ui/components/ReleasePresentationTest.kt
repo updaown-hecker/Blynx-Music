@@ -51,10 +51,10 @@ class ReleasePresentationTest {
                 UpdateDialog(release, onDismiss = {})
             }
         } }
-        compose.onNodeWithText("Update Blynx Music").assertIsDisplayed()
+        compose.onNodeWithText("Install update").assertIsDisplayed()
         compose.onNodeWithText("Not now").assertIsDisplayed()
         compose.onNodeWithText("app-arm64-v8a-release.apk").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Update Blynx Music").assertIsDisplayed()
+        compose.onNodeWithText("Install update").assertIsDisplayed()
         capture("update-large-text")
     }
 

@@ -23,6 +23,11 @@ export function Appearance() {
     root.style.setProperty('--ot-seed', color?.background ?? settings.accent);
     root.style.setProperty('--ot-accent-choice', settings.accent);
   }, [settings.mode, settings.pureBlack, settings.motion, settings.playerStyle, settings.accent, systemDark, color]);
+  useLayoutEffect(() => {
+    const style = document.documentElement.style;
+    style.setProperty('--liquid-opacity', `${settings.liquidGlassOpacity}%`);
+    style.setProperty('--liquid-blur', `${settings.liquidGlassBlur}px`);
+  }, [settings.liquidGlassOpacity, settings.liquidGlassBlur]);
   const customCss = useCustomCss((s) => s.source);
   useLayoutEffect(() => {
     if (!customCss || isMobileBrowser()) return;

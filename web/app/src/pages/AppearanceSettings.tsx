@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
-import { liquidGlassSupported } from '@/lib/liquidGlass';
+import { useLayoutEffect, useRef } from 'react';
+import { useLiquidGlass } from '@/lib/liquidGlass';
 import { ACCENTS, PLAYER_STYLES, useAppearance } from '@/state/appearance';
 import { Toggle } from './IntegrationSettings';
 import { settingsUi } from './settingsStyles';
@@ -20,19 +21,54 @@ function Segmented<T extends string>({ title, value, options, onChange }: { titl
   );
 }
 
+function GlassPreview() {
+  const artwork = useRef<HTMLCanvasElement>(null);
+  const lens = useLiquidGlass<HTMLDivElement>(22, 30);
+  useLayoutEffect(() => {
+    const canvas = artwork.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    const { width, height } = canvas;
+    const wash = context.createLinearGradient(0, height, width, 0);
+    wash.addColorStop(0, '#221947');
+    wash.addColorStop(.35, '#6e2b99');
+    wash.addColorStop(.66, '#d86b70');
+    wash.addColorStop(1, '#f1bc69');
+    context.fillStyle = wash;
+    context.fillRect(0, 0, width, height);
+    context.lineWidth = 2;
+    context.strokeStyle = '#fff7e678';
+    for (let x = -80; x < width + 64; x += 17) {
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x + 75, height);
+      context.stroke();
+    }
+  }, []);
+  return (
+    <div className="ot-glass-preview" data-glass-preview aria-hidden="true">
+      <canvas ref={artwork} width={800} height={144} data-glass-artwork />
+      <div ref={lens} className="ot-glass-preview-lens glass-pill" />
+    </div>
+  );
+}
+
 export function AppearanceSettings() {
   const a = useAppearance();
   return (
     <>
+      <section className={`${settingsUi.group} mb-3`} aria-label="Player glass">
+        <Toggle
+          label="Liquid Glass"
+          detail="Bend the artwork behind the player and navigation. The preview shows the effect."
+          checked={a.liquidGlass}
+          onChange={(liquidGlass) => a.update({ liquidGlass })}
+        />
+        <GlassPreview />
+      </section>
       <section className={settingsUi.group} aria-label="Appearance">
         <Segmented title="Theme" value={a.mode} options={[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]} onChange={(mode) => a.update({ mode })} />
         <Toggle label="Pure black" detail="True black surfaces in dark mode." checked={a.pureBlack} onChange={(pureBlack) => a.update({ pureBlack })} />
-        <Toggle
-          label="Liquid Glass"
-          detail={liquidGlassSupported() ? 'The player and floating buttons bend what’s behind them, like a lens.' : 'Needs Chrome or Edge. This browser keeps frosted glass.'}
-          checked={a.liquidGlass && liquidGlassSupported()}
-          onChange={(liquidGlass) => a.update({ liquidGlass })}
-        />
         <Toggle label="Colors from artwork" detail="Let the playing song color Blynx Music." checked={a.artworkColors} onChange={(artworkColors) => a.update({ artworkColors })} />
         <fieldset className="ot-accent-picker hairline-[16px]">
           <legend>

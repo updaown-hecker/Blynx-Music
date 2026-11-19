@@ -1,21 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAppearance } from '@/state/appearance';
 
-/**
- * Liquid Glass for the web: what's behind a floating pill is bent at its rim
- * as a thick lens would, with the colours split a little where it bends most.
- *
- * The bend is an SVG feDisplacementMap that backdrop-filter runs through
- * `url(#id)`. Only Chromium (Chrome, Edge, Opera, Brave) runs SVG filters in
- * backdrop-filter; Safari and Firefox drop the whole declaration, so there the
- * glass stays frosted (the CSS keeps the frosted filter as the fallback).
- */
-
-type Brands = { brands?: { brand: string }[] };
-
-export function liquidGlassSupported(): boolean {
-  const data = (navigator as Navigator & { userAgentData?: Brands }).userAgentData;
-  return !!data?.brands?.some((b) => b.brand === 'Chromium');
+/** Chromium can apply an SVG lens directly to the composed backdrop. */
+function nativeBackdropRefraction(): boolean {
+  const data = (navigator as Navigator & { userAgentData?: { brands?: { brand: string }[] } }).userAgentData;
+  const chromium = data?.brands?.some(({ brand }) => brand === 'Chromium') ||
+    /(?:Chrome|Chromium)\//.test(navigator.userAgent);
+  return !!chromium && CSS.supports('backdrop-filter', 'url("#blynx-lens")');
 }
 
 /**
@@ -117,19 +108,10 @@ function acquire(width: number, height: number, radius: number, bezel: number, d
   const image = el('feImage', { ...box, result: 'map', preserveAspectRatio: 'none' });
   image.setAttribute('href', mapUrl(width, height, radius, bezel));
   filter.append(image);
-  // Red, green and blue each bent a little less than the last: the rim's colour fringe.
-  const channels = [
-    ['r', 1, '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'],
-    ['g', 0.93, '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0'],
-    ['b', 0.86, '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0'],
-  ] as const;
-  for (const [name, part, matrix] of channels) {
-    filter.append(
-      el('feDisplacementMap', { in: 'SourceGraphic', in2: 'map', scale: depth * 2 * part, xChannelSelector: 'R', yChannelSelector: 'G', result: `${name}-bent` }),
-      el('feColorMatrix', { in: `${name}-bent`, type: 'matrix', values: matrix, result: name }),
-    );
-  }
-  filter.append(el('feBlend', { in: 'r', in2: 'g', mode: 'screen', result: 'rg' }), el('feBlend', { in: 'rg', in2: 'b', mode: 'screen' }));
+  filter.append(el('feDisplacementMap', {
+    in: 'SourceGraphic', in2: 'map', scale: depth * 2,
+    xChannelSelector: 'R', yChannelSelector: 'G',
+  }));
   svgHost().append(filter);
   filters.set(key, { id, node: filter, users: 1 });
   return key;
@@ -143,37 +125,130 @@ function release(key: string) {
 }
 
 /**
- * Gives the element Liquid Glass while the setting is on and the browser can
- * draw it: `data-liquid` on it, and `--liquid-filter` naming its lens, which
- * the glass CSS puts in its backdrop-filter. [bezel] is how far in from the
- * edge the glass bends; [depth] the furthest it moves anything, in pixels.
+ * Draw only artwork intersecting the lens. Firefox and Safari can distort
+ * a canvas through an SVG filter even when SVG backdrop-filter is unavailable.
  */
+function mirrorArtwork(node: HTMLElement, canvas: HTMLCanvasElement, source: HTMLElement): () => void {
+  const context = canvas.getContext('2d');
+  if (!context) return () => {};
+  const refreshSources = () => source.querySelectorAll<HTMLImageElement | HTMLCanvasElement>('img, canvas[data-glass-artwork]');
+  let artwork = refreshSources();
+  let frame = 0;
+  const draw = () => {
+    frame = 0;
+    const bounds = node.getBoundingClientRect();
+    const scene = source.getBoundingClientRect();
+    const { width, height } = canvas;
+    if (!bounds.width || !bounds.height || !width || !height) return;
+    context.setTransform(width / bounds.width, 0, 0, height / bounds.height, 0, 0);
+    context.clearRect(0, 0, bounds.width, bounds.height);
+    for (const item of artwork) {
+      if (node.contains(item)) continue;
+      const image = item instanceof HTMLImageElement;
+      if (image && (!item.complete || !item.naturalWidth)) continue;
+      const rect = item.getBoundingClientRect();
+      if (!rect.width || !rect.height ||
+        Math.max(rect.left, scene.left, bounds.left) >= Math.min(rect.right, scene.right, bounds.right) ||
+        Math.max(rect.top, scene.top, bounds.top) >= Math.min(rect.bottom, scene.bottom, bounds.bottom)) continue;
+
+      const x = rect.left - bounds.left;
+      const y = rect.top - bounds.top;
+      const style = getComputedStyle(item);
+      const radius = Math.min(Number.parseFloat(style.borderTopLeftRadius) || 0, rect.width / 2, rect.height / 2);
+      context.save();
+      context.beginPath();
+      context.rect(scene.left - bounds.left, scene.top - bounds.top, scene.width, scene.height);
+      context.clip();
+      context.beginPath();
+      context.roundRect(x, y, rect.width, rect.height, radius);
+      context.clip();
+      if (image && style.objectFit === 'cover') {
+        const scale = Math.max(rect.width / item.naturalWidth, rect.height / item.naturalHeight);
+        const w = item.naturalWidth * scale;
+        const h = item.naturalHeight * scale;
+        context.drawImage(item, x + (rect.width - w) / 2, y + (rect.height - h) / 2, w, h);
+      } else {
+        context.drawImage(item, x, y, rect.width, rect.height);
+      }
+      context.restore();
+    }
+  };
+  const queue = () => { if (!frame) frame = requestAnimationFrame(draw); };
+  const observer = new MutationObserver(() => { artwork = refreshSources(); queue(); });
+  observer.observe(source, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset'] });
+  const resize = new ResizeObserver(queue);
+  resize.observe(node);
+  resize.observe(source);
+  source.addEventListener('scroll', queue, { capture: true, passive: true });
+  source.addEventListener('load', queue, true);
+  node.addEventListener('transitionend', queue);
+  queue();
+  return () => {
+    cancelAnimationFrame(frame);
+    observer.disconnect();
+    resize.disconnect();
+    source.removeEventListener('scroll', queue, true);
+    source.removeEventListener('load', queue, true);
+    node.removeEventListener('transitionend', queue);
+  };
+}
+
+/** Keep the optics on a separate layer so the text and buttons remain crisp. */
 export function useLiquidGlass<T extends HTMLElement>(bezel = 22, depth = 22): (node: T | null) => void {
-  // A callback ref, so an element that comes and goes (the mini player) gets its lens each time.
   const [node, setNode] = useState<T | null>(null);
   const enabled = useAppearance((s) => s.liquidGlass);
   useEffect(() => {
-    if (!node || !enabled || !liquidGlassSupported()) return;
+    if (!node || !enabled) return;
+    const native = nativeBackdropRefraction();
+    const reduced = matchMedia('(prefers-reduced-transparency: reduce)');
     let held: string | null = null;
-    const apply = () => {
-      const width = Math.round(node.offsetWidth);
-      const height = Math.round(node.offsetHeight);
-      if (!width || !height) return;
-      const radius = Math.round(Math.min(Number.parseFloat(getComputedStyle(node).borderTopLeftRadius) || 0, width / 2, height / 2));
-      const key = acquire(width, height, radius, bezel, depth);
+    let canvas: HTMLCanvasElement | null = null;
+    let stopMirror: (() => void) | undefined;
+    const clear = () => {
+      stopMirror?.();
+      stopMirror = undefined;
+      canvas?.remove();
+      canvas = null;
       if (held) release(held);
-      held = key;
-      node.style.setProperty('--liquid-filter', `url(#${filters.get(key)!.id})`);
-      node.dataset.liquid = '';
+      held = null;
+      node.style.removeProperty('--liquid-filter');
+      delete node.dataset.liquid;
+    };
+    const apply = () => {
+      const width = node.offsetWidth;
+      const height = node.offsetHeight;
+      if (reduced.matches || !width || !height) { clear(); return; }
+      const radius = Math.round(Math.min(Number.parseFloat(getComputedStyle(node).borderTopLeftRadius) || 0, width / 2, height / 2));
+      const source = !native && node.classList.contains('glass-pill')
+        ? node.closest<HTMLElement>('[data-glass-preview]') ?? document.getElementById('scrollable-page')
+        : null;
+      if (native || source) {
+        const key = acquire(width, height, radius, bezel, depth);
+        if (held) release(held);
+        held = key;
+        node.style.setProperty('--liquid-filter', `url(#${filters.get(key)!.id})`);
+      }
+      if (source) {
+        if (!canvas) {
+          canvas = document.createElement('canvas');
+          canvas.className = 'ot-glass-artwork';
+          canvas.setAttribute('aria-hidden', 'true');
+          node.append(canvas);
+          stopMirror = mirrorArtwork(node, canvas, source);
+        }
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+      }
+      node.dataset.liquid = native ? 'native' : source ? 'mirror' : 'edge';
     };
     apply();
     const observer = new ResizeObserver(apply);
     observer.observe(node);
+    reduced.addEventListener('change', apply);
     return () => {
       observer.disconnect();
-      if (held) release(held);
-      node.style.removeProperty('--liquid-filter');
-      delete node.dataset.liquid;
+      reduced.removeEventListener('change', apply);
+      clear();
     };
   }, [node, enabled, bezel, depth]);
   return setNode;

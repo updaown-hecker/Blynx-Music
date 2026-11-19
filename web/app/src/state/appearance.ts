@@ -14,7 +14,7 @@ export interface Appearance {
   playerBackground: 'mesh' | 'gradient' | 'echo';
   playerStyle: typeof PLAYER_STYLES[number];
   motion: boolean;
-  /** The floating pills bend what's behind them (Chromium only; frosted elsewhere). */
+  /** Enable refraction on floating player surfaces. */
   liquidGlass: boolean;
 }
 export const DEFAULT_APPEARANCE: Appearance = {

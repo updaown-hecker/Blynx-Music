@@ -132,7 +132,8 @@ export function AppShell() {
   }, []);
   const extension = useExtension();
   // Locked behind the setup popup until the extension is in and allowed.
-  const { locked, gate } = useAllowGate(!desktopLaunch);
+  const { pathname } = useLocation();
+  const { locked, gate } = useAllowGate(!desktopLaunch && pathname !== '/settings/appearance');
   const bannerDismissed = useUi((s) => s.installBannerDismissed);
   const dismissBanner = useUi((s) => s.dismissInstallBanner);
   const fullScreen = useUi((s) => s.fullScreen);
@@ -141,7 +142,6 @@ export function AppShell() {
   useEffect(() => {
     if (fullScreen) setPlayerUp(true);
   }, [fullScreen]);
-  const { pathname } = useLocation();
   let banner = null;
   if (mobile) {
     banner = (

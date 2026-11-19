@@ -70,4 +70,20 @@ class UpdateCheckTest {
         // No release yet: the page stays on the release list.
         assertNull(UpdateCheck.fromPage("https://github.com/justshivv/Opentune/releases", listOf("arm64-v8a")))
     }
+    @Test fun blynxFeedRequiresFirstPartyApkAndChecksums() {
+        val base = "https://music.blynx.vip/updates/files/v1.2.8"
+        val name = "Blynx-Music-v1.2.8-arm64-v8a.apk"
+        fun metadata(apkUrl: String, checksumAsset: String): UpdateCheck.Release? = UpdateCheck.parseSiteRelease(
+            Json.parseToJsonElement(
+                """{"tag_name":"v1.2.8","assets":[
+                   {"name":"$name","browser_download_url":"$apkUrl","size":9100000}$checksumAsset]}""",
+            ).jsonObject,
+            listOf("arm64-v8a"),
+        )
+        val sums = """,{"name":"SHA256SUMS.txt","browser_download_url":"$base/SHA256SUMS.txt"}"""
+        assertEquals(name, metadata("$base/$name", sums)?.apk?.name)
+        assertNull(metadata("$base/$name", "")?.apk)
+        assertNull(metadata("https://example.org/$name", sums)?.apk)
+        assertEquals("https://github.com/updaown-hecker/Blynx-Music/releases/tag/v1.2.8", metadata("$base/$name", "")?.page)
+    }
 }

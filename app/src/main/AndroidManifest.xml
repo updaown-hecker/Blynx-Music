@@ -68,6 +68,8 @@
         android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config">
 
+        <meta-data android:name="asset_statements" android:resource="@string/blynx_asset_statements" />
+
         <activity android:name=".AddonApprovalActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

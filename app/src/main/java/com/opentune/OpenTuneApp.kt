@@ -1,6 +1,7 @@
 package com.opentune
 
 import android.app.Application
+import androidx.core.content.edit
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -10,8 +11,10 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.opentune.data.Http
 import com.opentune.data.MusicRepository
+import com.opentune.data.settings.AppSettings
 import com.opentune.data.subsonic.Subsonic
 import com.opentune.ui.ScreenCache
+import com.opentune.ui.settings.AndroidCloudBackupWorker
 import okio.Path.Companion.toOkioPath
 
 class OpenTuneApp : Application(), SingletonImageLoader.Factory {
@@ -50,6 +53,14 @@ class OpenTuneApp : Application(), SingletonImageLoader.Factory {
         // The words on every screen, in the chosen language (the phone's own when none is chosen).
         com.opentune.i18n.Tr.use(this, com.opentune.ui.theme.AppLanguages.selected(this).tag)
         com.opentune.data.Core.init(this)
+        val migrations = getSharedPreferences("blynx-migrations", MODE_PRIVATE)
+        if (!migrations.getBoolean("keep-playing-after-recents", false)) {
+            if (AppSettings.playback.value.stopOnTaskRemoved) {
+                AppSettings.updatePlayback { it.copy(stopOnTaskRemoved = false) }
+            }
+            migrations.edit { putBoolean("keep-playing-after-recents", true) }
+        }
+        AndroidCloudBackupWorker.observeApp(this)
         // Spotify's personal song radio, when Spotify is connected; the cookie stays with the WebView.
         com.opentune.data.spotify.SpotifyWebPlayer.account = {
             if (com.opentune.ui.spotify.SpotifyConnection.connected.value) com.opentune.ui.spotify.SpotifyConnection.cookie() else null

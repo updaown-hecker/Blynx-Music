@@ -60,24 +60,29 @@ internal object AndroidCloudBackup {
     suspend fun connectionLink(context: Context): String? = operation {
         val token = ByteArray(32).also(SecureRandom()::nextBytes).hex()
         write(context, Device(token, -1, null))
+        AndroidCloudBackupWorker.schedule(context)
         lastCheckedSnapshot = null
         status.value = Status(pending = true, detail = "Approve the connection in your browser.")
         WEB + "#" + sha(token)
     }
 
-    suspend fun check(context: Context) = operation {
+    fun hasConnection(context: Context): Boolean = file(context).baseFile.exists()
+
+    suspend fun check(context: Context, allowUpload: Boolean = false): Boolean = operation {
         val device = read(context)
         if (device == null) {
             status.value = Status()
-            return@operation
+            return@operation true
         }
-        val remote = meta(device) ?: return@operation
+        val remote = meta(device) ?: return@operation true
         if (remote.revision == 0L || remote.revision == device.revision) {
-            upload(context, device, remote, skipUnchanged = true)
+            if (allowUpload) upload(context, device, remote, skipUnchanged = true)
+            else status.value = Status(true, savedAt = remote.savedAt)
         } else {
             status.value = Status(true, savedAt = remote.savedAt, detail = "Restore this backup or choose to replace it with this device's data.")
         }
-    }
+        true
+    } ?: false
 
     suspend fun save(context: Context) = operation {
         val device = read(context) ?: return@operation
@@ -109,6 +114,7 @@ internal object AndroidCloudBackup {
         val response = request(device, "DELETE")
         check(response.code == 200 || response.code == 401)
         file(context).delete()
+        AndroidCloudBackupWorker.cancel(context)
         lastCheckedSnapshot = null
         status.value = Status()
     }

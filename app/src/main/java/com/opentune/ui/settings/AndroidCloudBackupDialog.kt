@@ -43,7 +43,7 @@ internal fun AndroidCloudBackupDialog(onDismiss: () -> Unit) {
         title = { Text("Cloud backup") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Back up settings, playlists, likes and listening history to your account on music.blynx.vip. Connect once in your browser to turn on automatic backups.")
+                Text("Back up settings, playlists, likes and listening history to your account on music.blynx.vip. Connect once in your browser. Automatic backups run in the background when you leave the app.")
                 state.savedAt?.let {
                     val date = Date(it)
                     Text("Last backup: " + DateFormat.getDateFormat(context).format(date) + " " + DateFormat.getTimeFormat(context).format(date))

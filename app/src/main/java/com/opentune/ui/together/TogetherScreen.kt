@@ -142,9 +142,6 @@ import com.opentune.ui.components.RowDivider
 import com.opentune.ui.components.SectionHeader
 import com.opentune.ui.components.ToggleRow
 import com.opentune.ui.components.glass
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Listen together: start a room or join one by code, then see who's in,
@@ -176,37 +173,15 @@ fun TogetherScreen(contentPadding: PaddingValues, code: String?, onBack: () -> U
             dismissButton = { androidx.compose.material3.TextButton(onClick = { switchRoom = false }) { Text("Stay here") } },
         )
     }
-    // A new room stays on the Start button, as a spinner, until a relay
-    // answers (or a few seconds pass), so the room opens ready to share,
-    // with its invite on top.
-    val still = AppSettings.ui.collectAsState().value.reduceAnimation
-    var opening by rememberSaveable { mutableStateOf(false) }
-    var inviteFor by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(opening) {
-        if (!opening) return@LaunchedEffect
-        val since = System.currentTimeMillis()
-        withTimeoutOrNull(OPENING_MAX_MS) { Together.room.first { it == null || it.phase != Together.Phase.Connecting } }
-        // Long enough to see what happened, when the relays answer at once.
-        if (!still) delay((OPENING_MIN_MS - (System.currentTimeMillis() - since)).coerceAtLeast(0))
-        val now = Together.room.value
-        if (now != null && now.hosting) inviteFor = now.code.raw
-        opening = false
-    }
-    // Both pages scroll behind the dock and stop short of it; the room's
-    // island sits on top of the dock.
-    if (r == null || (opening && r.hosting)) {
-        StartRoom(code, onBack, contentPadding, opening = opening && r != null, onStart = { name ->
-            Together.create(name)
-            opening = true
+    var createdRoom by rememberSaveable { mutableStateOf<String?>(null) }
+    if (r == null) {
+        StartRoom(code, onBack, contentPadding, onStart = { name ->
+            createdRoom = Together.create(name).raw
         })
     } else {
-        RoomView(r, onBack, contentPadding, openInvite = inviteFor == r.code.raw)
+        RoomView(r, onBack, contentPadding, openInvite = createdRoom == r.code.raw)
     }
 }
-
-/** The longest a new room waits on the Start button for a relay, and the shortest it shows there. */
-private const val OPENING_MAX_MS = 5_000L
-private const val OPENING_MIN_MS = 700L
 
 @Composable
 internal fun StartRoom(
@@ -259,7 +234,7 @@ internal fun StartRoom(
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = { join() }, enabled = canJoin, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Join") }
+                    Button(onClick = { join() }, enabled = canJoin, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Join room") }
                 } else {
                     StartButton(opening = opening, enabled = name.isNotBlank()) { onStart(name) }
                     Row(Modifier.padding(vertical = 24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -298,7 +273,7 @@ internal fun StartRoom(
                         },
                     )
                     Spacer(Modifier.height(16.dp))
-                    FilledTonalButton(onClick = { join() }, enabled = canJoin, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Join") }
+                    FilledTonalButton(onClick = { join() }, enabled = canJoin, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Join room") }
                 }
                 Spacer(Modifier.height(28.dp))
                 PrivacyNote()
@@ -487,14 +462,21 @@ internal fun RoomView(r: Together.Room, onBack: () -> Unit, contentPadding: Padd
     val density = LocalDensity.current
     val focus = LocalFocusManager.current
     var message by rememberSaveable { mutableStateOf("") }
-    var inviting by rememberSaveable(r.code.raw) { mutableStateOf(openInvite) }
+    var inviting by rememberSaveable(r.code.raw) { mutableStateOf(false) }
+    var showedFirstInvite by rememberSaveable(r.code.raw) { mutableStateOf(false) }
+    LaunchedEffect(r.code, r.phase, openInvite) {
+        if (r.hosting && r.phase == Together.Phase.Live && openInvite && !showedFirstInvite) {
+            showedFirstInvite = true
+            inviting = true
+        }
+    }
     var open by rememberSaveable(r.code.raw) { mutableStateOf(false) }
     val typing = remember { FocusRequester() }
     val list = rememberLazyListState()
     // The island sits on the dock, and on the keyboard while it's up.
     KeepChromeOut()
     KeyboardResizes()
-    val island = r.phase != Together.Phase.Ended
+    val island = r.phase == Together.Phase.Live
     val keyboard = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
     val above = maxOf(contentPadding.calculateBottomPadding() - ISLAND_DROP, keyboard + 8.dp, 8.dp)
     var islandHeight by remember { mutableStateOf(ISLAND_HEIGHT) }
@@ -555,7 +537,22 @@ internal fun RoomView(r: Together.Room, onBack: () -> Unit, contentPadding: Padd
             contentPadding = PaddingValues(bottom = listBottom),
         ) {
             item { PageHeader(if (r.hosting) "Your room" else com.opentune.i18n.Tr.f("{0}'s room", r.hostName ?: com.opentune.i18n.Tr.t("Friend")), onBack = onBack) }
-            item { CodeCard(r, onInvite = { inviting = true }, onCopy = { copyCode(context, r.code) }) }
+            item {
+                CodeCard(
+                    r,
+                    onInvite = { inviting = true },
+                    onCopy = {
+                        val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Blynx Music invite", r.code.link))
+                        com.opentune.data.Pills.done("Invite link copied", context)
+                    },
+                )
+            }
+            if (r.hosting && r.requests.isNotEmpty()) {
+                item { SectionHeader("Join requests", subtitle = com.opentune.i18n.Tr.f("{0} waiting", r.requests.size)) }
+                items(r.requests.size, key = { "req:" + r.requests[it].id }) { i -> RequestRow(r.requests[i]) }
+            }
+            if (r.phase != Together.Phase.Live) return@LazyColumn
             item { NowInRoom(r) }
             if (r.holding) {
                 item {
@@ -568,10 +565,6 @@ internal fun RoomView(r: Together.Room, onBack: () -> Unit, contentPadding: Padd
                         Button(onClick = { Together.intercept(Together.Control.PlayPause) }) { Text("Catch up") }
                     }
                 }
-            }
-            if (r.hosting && r.requests.isNotEmpty()) {
-                item { SectionHeader("Asking to join", subtitle = com.opentune.i18n.Tr.f("{0} waiting", r.requests.size)) }
-                items(r.requests.size, key = { "req:" + r.requests[it].id }) { i -> RequestRow(r.requests[i]) }
             }
             item { SectionHeader("Listening", subtitle = com.opentune.i18n.Tr.f("{0} in the room", r.members.size)) }
             item { Members(r.members, r.myId, canRemove = r.hosting, speaking = speaking) }
@@ -931,7 +924,7 @@ private fun CodeCard(r: Together.Room, onInvite: () -> Unit, onCopy: () -> Unit)
                     Icon(Icons.Rounded.PersonAdd, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Invite")
                 }
                 FilledTonalButton(onClick = onCopy, Modifier.weight(1f).height(48.dp)) {
-                    Icon(Icons.Rounded.ContentCopy, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Copy code")
+                    Icon(Icons.Rounded.ContentCopy, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Copy link")
                 }
             }
         }
@@ -958,6 +951,7 @@ private fun CodeCard(r: Together.Room, onInvite: () -> Unit, onCopy: () -> Unit)
                 when {
                     r.phase == Together.Phase.Ended -> "Close"
                     r.hosting -> "End room"
+                    r.phase != Together.Phase.Live -> "Cancel join"
                     else -> "Leave room"
                 },
             )
@@ -1005,7 +999,7 @@ private fun LiveStatus(r: Together.Room) {
         }
         Spacer(Modifier.width(8.dp))
         Text(
-            text + if (r.relays > 0 && r.phase != Together.Phase.Ended) com.opentune.i18n.Tr.f(" · {0} relays", r.relays) else "",
+            text,
             style = MaterialTheme.typography.labelLarge,
             color = if (live) tone else scheme.onSurfaceVariant,
             maxLines = 2,

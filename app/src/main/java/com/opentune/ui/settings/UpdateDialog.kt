@@ -128,7 +128,7 @@ fun UpdateDialog(found: UpdateCheck.Release, onDismiss: () -> Unit, onNotNow: (U
                         onDismiss()
                     } else start()
                 }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                    Text(if (progress != null) "Downloading…" else if (apk == null) "Open release page" else "Update Blynx Music")
+                    Text(if (progress != null) "Downloading…" else if (apk == null) "Open GitHub download" else "Install update")
                 }
                 TextButton(onClick = {
                     if (progress != null) install.cancel() else onNotNow(release)

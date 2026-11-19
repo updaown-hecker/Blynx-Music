@@ -1,3 +1,10 @@
+## Android 1.2.8
+
+- Cloud backup waits until the app has been open for 45 seconds. Unchanged data skips the automatic export, and manual backup and restore remain available.
+- Listen Together opens directly into the room, puts host approvals near the top, and adds a one-tap invite link.
+- Share songs and YouTube Music playlists using links on music.blynx.vip.
+- Check for releases published in the Blynx update feed. When a compatible, checksummed APK is hosted there, Android offers installation from the app. Private GitHub builds open their release page.
+
 Blynx Music Android test build based on OpenTune.
 
 - **ARM64** is the smaller download for the Samsung Galaxy S25 FE.

@@ -19,6 +19,13 @@ class LinksTest {
         assertEquals(LinkTarget.Browse("UCabc"), Links.parse("https://music.youtube.com/channel/UCabc"))
     }
 
+    @Test fun blynxSharesOpenTheSameTargets() {
+        assertEquals(LinkTarget.Song("dQw4w9WgXcQ"), Links.parse("Shared: https://music.blynx.vip/share/?song=dQw4w9WgXcQ&q=Example"))
+        assertEquals(LinkTarget.Browse("VLPL123"), Links.parse("blynxmusic://share/?playlist=PL123"))
+        assertEquals(LinkTarget.Browse("MPREb_abc"), Links.parse("https://music.blynx.vip/share/?browse=MPREb_abc"))
+        assertNull(Links.parse("https://music.blynx.vip.example/share/?song=dQw4w9WgXcQ"))
+    }
+
     @Test fun otherLinksAreIgnored() {
         assertNull(Links.parse("https://example.com/watch?v=dQw4w9WgXcQ"))
         assertNull(Links.parse("no link here"))

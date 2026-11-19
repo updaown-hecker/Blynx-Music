@@ -140,6 +140,19 @@
                 <data android:path="/together" />
                 <data android:path="/together/" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="music.blynx.vip" android:path="/share/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="blynxmusic" android:host="share" />
+                <data android:scheme="blynxmusic" android:host="open" />
+            </intent-filter>
             <!-- "Play … on Blynx Music" from the Assistant. -->
             <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />

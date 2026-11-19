@@ -632,6 +632,9 @@ object LibraryStore {
     internal fun applyLikedSync(owner: String, startedWith: List<SongRef>, liked: List<SongRef>, agreed: Set<String>) =
         update { d -> d.copy(liked = keepLikedEdits(startedWith, d.liked, liked), likedSyncOwner = owner, likedSyncedIds = agreed) }
 
+    /** An immutable snapshot identity for callers that need to detect changes before exporting. */
+    fun backupIdentity(): Any = doc.value
+
     fun exportJson(): JsonElement {
         val d = doc.value
         return json.encodeToJsonElement(LibraryDocument.serializer(), d.copy(

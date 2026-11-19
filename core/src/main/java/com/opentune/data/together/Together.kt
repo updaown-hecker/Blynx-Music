@@ -286,7 +286,11 @@ object Together {
         val clean = name.trim().take(30).ifBlank { "Someone" }
         savedName = clean
         _room.value = Room(code, hosting, clean)
-        val p = player ?: return
+        val p = player
+        if (p == null) {
+            _room.value = _room.value?.copy(phase = Phase.Ended, endedReason = "Playback is starting. Close this screen and try again.")
+            return
+        }
         val filter = buildJsonObject {
             put("kinds", JsonArray(listOf(JsonPrimitive(KIND))))
             put("#t", JsonArray(listOf(JsonPrimitive(code.tag))))

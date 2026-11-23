@@ -278,8 +278,8 @@ compose.desktop {
             // What jlink's scan suggests, plus scripting for Rhino, java.sql for the library and EC ciphers for HTTPS.
             modules("java.instrument", "java.management", "java.net.http", "java.scripting", "java.sql", "jdk.crypto.ec", "jdk.dynalink", "jdk.httpserver", "jdk.jfr", "jdk.unsupported")
             macOS {
-                iconFile.set(project.file("packaging/icons/AppIcon.icns"))
-                bundleID = "com.opentune.desktop"
+                iconFile.set(project.file("packaging/icons/BlynxMusic.icns"))
+                bundleID = "vip.blynx.music.macos"
             }
             windows {
                 iconFile.set(project.file("packaging/icons/AppIcon.ico"))

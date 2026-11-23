@@ -115,7 +115,7 @@ jobs:
           # The DMG carries the GPL text as a license prompt, which cannot
           # be displayed on a headless runner. Test the staged app instead.
           app=desktop/build/compose/binaries/main/app/BlynxMusic.app
-          lipo -verify_arch "$ARCH" "$app/Contents/MacOS/BlynxMusic"
+          lipo "$app/Contents/MacOS/BlynxMusic" -verify_arch "$ARCH"
           "$app/Contents/MacOS/BlynxMusic" --self-check
           cd "$out"
           shasum -a 256 "$dmg" > SHA256SUMS.txt

@@ -1,0 +1,132 @@
+name: Blynx Music Apple builds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'desktop/src/**'
+      - 'desktop/build.gradle.kts'
+      - 'desktop/packaging/icons/BlynxMusic.png'
+      - 'docs/blynx-apple.md'
+      - '.github/workflows/apple-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blynx-apple-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the Swift package
+        working-directory: ios/OpenTuneCore
+        run: swift test
+      - name: Generate the Xcode project and build
+        working-directory: ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild -version
+          xcodebuild -project BlynxMusic.xcodeproj -scheme BlynxMusic \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          xcodebuild -project BlynxMusic.xcodeproj -scheme BlynxMusic \
+            -configuration Release -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Check and package iPhone and iPad build
+        working-directory: ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=build/Build/Products/Release-iphoneos/BlynxMusic.app
+          test -x "$app/BlynxMusic"
+          test "$(lipo -archs "$app/BlynxMusic")" = arm64
+          test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = vip.blynx.music.ios
+          test "$(plutil -extract MinimumOSVersion raw "$app/Info.plist")" = 16.0
+          test -d build/Build/Products/Release-iphonesimulator/BlynxMusic.app
+          out="$RUNNER_TEMP/apple"
+          mkdir -p "$out/Payload"
+          ditto "$app" "$out/Payload/BlynxMusic.app"
+          cd "$out"
+          ditto -c -k --keepParent Payload Blynx-Music-iOS-unsigned.ipa
+          unzip -tq Blynx-Music-iOS-unsigned.ipa
+          shasum -a 256 Blynx-Music-iOS-unsigned.ipa > SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+      - name: Publish the unsigned iOS package
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="ios-${GITHUB_SHA:0:12}"
+          if gh release view "$tag" >/dev/null 2>&1; then exit 0; fi
+          gh release create "$tag" "$RUNNER_TEMP/apple/Blynx-Music-iOS-unsigned.ipa" "$RUNNER_TEMP/apple/SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" --prerelease --title "Blynx Music for iPhone and iPad" --notes-file docs/blynx-apple.md
+
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-37.0 build-tools;35.0.0 ndk;27.2.12479018 cmake;3.22.1
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build the Mac desktop player
+        run: ./gradlew --no-daemon :desktop:packageDmg
+      - name: Verify and smoke-test the disk image
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "$ARCH"
+          out="$RUNNER_TEMP/apple"
+          mkdir -p "$out" "$RUNNER_TEMP/blynx-dmg"
+          dmg="Blynx-Music-macOS-$ARCH.dmg"
+          images=(desktop/build/compose/binaries/main/dmg/*.dmg)
+          test "${#images[@]}" -eq 1
+          cp "${images[0]}" "$out/$dmg"
+          hdiutil verify "$out/$dmg"
+          hdiutil attach -nobrowse -readonly -mountpoint "$RUNNER_TEMP/blynx-dmg" "$out/$dmg"
+          trap 'hdiutil detach "$RUNNER_TEMP/blynx-dmg"' EXIT
+          app="$RUNNER_TEMP/blynx-dmg/BlynxMusic.app"
+          test "$(lipo -archs "$app/Contents/MacOS/BlynxMusic")" = "$ARCH"
+          "$app/Contents/MacOS/BlynxMusic" --self-check
+          cd "$out"
+          shasum -a 256 "$dmg" > SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+      - name: Publish the Mac disk image
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          tag="macos-$ARCH-${GITHUB_SHA:0:12}"
+          if gh release view "$tag" >/dev/null 2>&1; then exit 0; fi
+          gh release create "$tag" "$RUNNER_TEMP/apple/Blynx-Music-macOS-$ARCH.dmg" "$RUNNER_TEMP/apple/SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" --prerelease --title "Blynx Music for macOS ($ARCH)" --notes-file docs/blynx-apple.md

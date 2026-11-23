@@ -1,8 +1,7 @@
-# The iOS app's Xcode project, generated with XcodeGen (`xcodegen generate`
-# in this folder) so no .xcodeproj is kept in git. CI does the same.
-name: OpenTune
+# Generate with XcodeGen before opening the project in Xcode.
+name: BlynxMusic
 options:
-  bundleIdPrefix: com.opentune
+  bundleIdPrefix: vip.blynx
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -11,12 +10,11 @@ packages:
     path: OpenTuneCore
 settings:
   base:
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.2.9"
+    CURRENT_PROJECT_VERSION: "111"
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: ""
 targets:
-  OpenTune:
+  BlynxMusic:
     type: application
     platform: iOS
     sources:
@@ -25,23 +23,22 @@ targets:
       - package: OpenTuneCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.opentune.ios
-        PRODUCT_NAME: OpenTune
+        PRODUCT_BUNDLE_IDENTIFIER: vip.blynx.music.ios
+        PRODUCT_NAME: BlynxMusic
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGNING_ALLOWED: NO
-        CODE_SIGNING_REQUIRED: NO
-        CODE_SIGN_IDENTITY: ""
+        CODE_SIGN_STYLE: Automatic
     info:
       path: OpenTune/Info.plist
       properties:
-        CFBundleDisplayName: OpenTune
+        CFBundleDisplayName: Blynx Music
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UIBackgroundModes: [audio]
         UIUserInterfaceStyle: Dark
         ITSAppUsesNonExemptEncryption: false
+        UIRequiresFullScreen: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]

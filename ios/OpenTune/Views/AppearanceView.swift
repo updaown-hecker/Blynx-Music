@@ -21,7 +21,7 @@ struct AppearanceView: View {
                     Text("Medium").tag("medium")
                     Text("Bold").tag("bold")
                 }
-                Text("OpenTune").font(.system(size: 28, weight: chosenWeight, design: chosenDesign))
+                Text("Blynx Music").font(.system(size: 28, weight: chosenWeight, design: chosenDesign))
             }
             Section("Player") {
                 Picker("Background", selection: $background) {
